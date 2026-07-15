@@ -30,6 +30,15 @@ interface MarketplaceRow {
   marketplace_listing_images?: { storage_path: string }[];
 }
 
+interface LegacyMarketplaceRow {
+  id: string;
+  title: string;
+  price_myr: number;
+  location: string;
+  image_path: string | null;
+  description: string;
+}
+
 const initialProducts: Product[] = [
   {
     name: "Daiwa BG 4000 reel",
@@ -87,6 +96,8 @@ export function Marketplace() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
   const visible = useMemo(
     () => products.filter((item) => `${item.name} ${item.place} ${item.category} ${item.condition}`.toLowerCase().includes(query.toLowerCase())),
     [products, query],
@@ -100,7 +111,19 @@ export function Marketplace() {
       .select("id,title,price_myr,location,image_path,description,condition,marketplace_listing_images(storage_path)")
       .eq("status", "active")
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
+      .then(async ({ data, error }) => {
+        if (error) {
+          const legacy = await supabase.from("marketplace_listings").select("id,title,price_myr,location,image_path,description").eq("status", "active").order("created_at", { ascending: false });
+          if (!legacy.data?.length) return;
+          setProducts([
+            ...(legacy.data as LegacyMarketplaceRow[]).map((row): Product => {
+              const image = row.image_path ? supabase.storage.from("marketplace-images").getPublicUrl(row.image_path).data.publicUrl : initialProducts[0].image;
+              return { id: row.id, name: row.title, price: Number(row.price_myr), place: row.location, category: row.description || "Fishing gear", condition: "Used", image, images: [image] };
+            }),
+            ...initialProducts,
+          ]);
+          return;
+        }
         if (!data?.length) return;
         setProducts([
           ...(data as MarketplaceRow[]).map((row): Product => {
@@ -124,55 +147,73 @@ export function Marketplace() {
   }, []);
 
   async function add(formData: FormData) {
-    const files = formData.getAll("images").filter((file): file is File => file instanceof File && file.size > 0).slice(0, 5);
-    const condition = String(formData.get("condition")) === "New" ? "New" : "Used";
-    const localImages = files.length ? await Promise.all(files.map(readFileAsDataUrl)) : [];
-    const product: Product = {
-      name: String(formData.get("name")),
-      price: Number(formData.get("price")),
-      place: String(formData.get("place")),
-      category: String(formData.get("category")),
-      condition,
-      image: localImages[0] ?? initialProducts[0].image,
-      images: localImages.length ? localImages : [initialProducts[0].image],
-    };
+    setBusy(true);
+    setMessage("");
+    try {
+      const files = formData.getAll("images").filter((file): file is File => file instanceof File && file.size > 0).slice(0, 5);
+      const condition = String(formData.get("condition")) === "New" ? "New" : "Used";
+      const localImages = files.length ? await Promise.all(files.map(readFileAsDataUrl)) : [];
+      const product: Product = {
+        name: String(formData.get("name")),
+        price: Number(formData.get("price")),
+        place: String(formData.get("place")),
+        category: String(formData.get("category")),
+        condition,
+        image: localImages[0] ?? initialProducts[0].image,
+        images: localImages.length ? localImages : [initialProducts[0].image],
+      };
 
-    if (isSupabaseConfigured()) {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
-        window.location.href = "/auth";
-        return;
-      }
-      const result = await supabase
-        .from("marketplace_listings")
-        .insert({ seller_id: data.user.id, title: product.name, price_myr: product.price, location: product.place, description: product.category, condition: condition.toLowerCase() })
-        .select("id")
-        .single();
-      if (result.error) throw result.error;
-      product.id = result.data.id;
+      if (isSupabaseConfigured()) {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getUser();
+        if (!data.user) {
+          window.location.href = "/auth";
+          return;
+        }
+        let result = await supabase
+          .from("marketplace_listings")
+          .insert({ seller_id: data.user.id, title: product.name, price_myr: product.price, location: product.place, description: product.category, condition: condition.toLowerCase() })
+          .select("id")
+          .single();
 
-      const uploadedImages: string[] = [];
-      for (const [index, file] of files.entries()) {
-        if (!file.type.match(/^image\/(jpeg|png|webp)$/) || file.size > 10 * 1024 * 1024) continue;
-        const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-        const path = `${data.user.id}/${result.data.id}/${crypto.randomUUID()}.${extension}`;
-        const upload = await supabase.storage.from("marketplace-images").upload(path, file, { contentType: file.type, upsert: false });
-        if (upload.error) throw upload.error;
-        uploadedImages.push(supabase.storage.from("marketplace-images").getPublicUrl(path).data.publicUrl);
-        const imageRow = await supabase.from("marketplace_listing_images").insert({ listing_id: result.data.id, owner_id: data.user.id, storage_path: path, position: index });
-        if (imageRow.error) throw imageRow.error;
-        if (index === 0) await supabase.from("marketplace_listings").update({ image_path: path }).eq("id", result.data.id);
+        if (result.error) {
+          result = await supabase
+            .from("marketplace_listings")
+            .insert({ seller_id: data.user.id, title: product.name, price_myr: product.price, location: product.place, description: product.category })
+            .select("id")
+            .single();
+        }
+        if (result.error) throw result.error;
+        product.id = result.data.id;
+
+        const uploadedImages: string[] = [];
+        let extraImagesSaved = true;
+        for (const [index, file] of files.entries()) {
+          if (!file.type.match(/^image\/(jpeg|png|webp)$/) || file.size > 10 * 1024 * 1024) continue;
+          const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+          const path = `${data.user.id}/${result.data.id}/${crypto.randomUUID()}.${extension}`;
+          const upload = await supabase.storage.from("marketplace-images").upload(path, file, { contentType: file.type, upsert: false });
+          if (upload.error) throw upload.error;
+          uploadedImages.push(supabase.storage.from("marketplace-images").getPublicUrl(path).data.publicUrl);
+          if (index === 0) await supabase.from("marketplace_listings").update({ image_path: path }).eq("id", result.data.id);
+          const imageRow = await supabase.from("marketplace_listing_images").insert({ listing_id: result.data.id, owner_id: data.user.id, storage_path: path, position: index });
+          if (imageRow.error) extraImagesSaved = false;
+        }
+        if (uploadedImages.length) {
+          product.image = uploadedImages[0];
+          product.images = uploadedImages;
+        }
+        if (!extraImagesSaved) setMessage("Listing published. Run the latest marketplace migration to keep all extra photos after refresh.");
       }
-      if (uploadedImages.length) {
-        product.image = uploadedImages[0];
-        product.images = uploadedImages;
-      }
+
+      setProducts((current) => [product, ...current]);
+      setPreviews([]);
+      setOpen(false);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not publish listing. Please try again.");
+    } finally {
+      setBusy(false);
     }
-
-    setProducts((current) => [product, ...current]);
-    setPreviews([]);
-    setOpen(false);
   }
 
   function contact(product: Product) {
@@ -188,6 +229,7 @@ export function Marketplace() {
         description="Discover equipment listed by anglers near you."
         action={<button className="primary-button" onClick={() => setOpen(true)}><Plus />Sell item</button>}
       />
+      {message && <p className="auth-message" role="status">{message}</p>}
       <label className="market-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search rods, reels, lures, or location" /></label>
       <div className="product-grid">
         {visible.map((product) => (
@@ -236,7 +278,8 @@ export function Marketplace() {
                 <label>Condition<select name="condition" defaultValue="Used"><option>Used</option><option>New</option></select></label>
                 <label className="wide">Location<input required name="place" placeholder="Penang" /></label>
               </div>
-              <button className="primary-button wide-button">Publish listing</button>
+              <button className="primary-button wide-button" disabled={busy}>{busy ? "Publishing..." : "Publish listing"}</button>
+              {message && <p className="auth-message" role="status">{message}</p>}
             </form>
           </section>
         </div>
