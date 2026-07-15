@@ -1,0 +1,1531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#071417"/>
+<title>AnglerMY Live Map Demo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>
+:root{
+  --bg:#071417;--panel:#0d2024;--panel2:#10292e;--text:#f5fbfb;--muted:#9fb2b5;
+  --green:#28c76f;--green2:#16a45a;--line:#1f3a40;--danger:#ff5a67;--gold:#f3bd45;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#061014,#0a191d);color:var(--text);font:14px/1.45 Arial,Helvetica,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+a{color:inherit}
+.app{max-width:1220px;margin:auto;min-height:100vh}
+.top{position:sticky;top:0;z-index:20;background:rgba(7,20,23,.96);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:12px 18px;backdrop-filter:blur(10px)}
+.brand{font-size:24px;font-weight:800;white-space:nowrap}.brand b{color:var(--green)}
+.nav{display:flex;gap:6px;overflow:auto}
+.nav button,.pill{border:0;background:transparent;color:var(--muted);padding:10px 12px;border-radius:10px}
+.nav button.active,.nav button:hover,.pill.active{background:#123137;color:#fff}
+.postBtn{margin-left:auto;background:var(--green);border:0;border-radius:10px;padding:10px 16px;font-weight:700}
+.layout{display:grid;grid-template-columns:240px minmax(0,1fr) 290px;gap:16px;padding:16px}
+.card{background:linear-gradient(180deg,var(--panel),#0a1b1f);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.pad{padding:14px}.muted{color:var(--muted)}.green{color:var(--green)}.small{font-size:12px}
+.profile{text-align:center;padding:18px}.avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid var(--green)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.stats div{background:#0a1b1f;padding:8px;border-radius:10px}
+.badge{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}.badge:last-child{border-bottom:0}
+.badgeIcon{font-size:24px}
+.composer{padding:14px}.composer input{width:100%;background:#08191d;border:1px solid var(--line);color:white;padding:13px;border-radius:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions button{flex:1;min-width:110px;background:#10292e;border:1px solid var(--line);color:white;padding:10px;border-radius:10px}
+.feed{display:grid;gap:14px}.postHead{display:flex;align-items:center;gap:10px}.miniAvatar{width:42px;height:42px;border-radius:50%;object-fit:cover}.postImg{width:100%;display:block;max-height:520px;object-fit:cover;background:#0a1b1f}
+.postActions{display:flex;gap:8px;padding:10px 14px}.postActions button{background:transparent;border:0;color:white;padding:6px 8px}
+.sideTitle{display:flex;justify-content:space-between;align-items:center}
+.weatherBig{font-size:42px;font-weight:800}
+.metricGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.metric{background:#0a1b1f;padding:9px;border-radius:10px}
+.trip{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:10px;border-top:1px solid rgba(255,255,255,.06)}.trip img{width:76px;height:70px;object-fit:cover;border-radius:10px}
+.btn{background:var(--green);border:0;border-radius:9px;padding:9px 12px;font-weight:700}.btn.alt{background:#17373d;color:#fff;border:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.product{padding:12px}.product img{width:100%;height:150px;object-fit:cover;border-radius:12px}.price{font-weight:800;color:var(--green);font-size:18px}
+.section{display:none}.section.active{display:block}
+.sectionWrap{padding:16px}.sectionHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.filters{display:flex;gap:8px;overflow:auto;margin-bottom:14px}.filters button{white-space:nowrap}
+.tripGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.tripCard img{width:100%;height:180px;object-fit:cover}.tripMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.marketGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.forecastDays{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.day{padding:14px;text-align:center}
+.communityGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.community{display:flex;gap:12px;align-items:center;padding:14px}.community img{width:64px;height:64px;border-radius:14px;object-fit:cover}
+.achGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.achCard{text-align:center;padding:14px}
+.achCard .icon{font-size:34px;margin-bottom:8px}
+.profileHero{display:grid;grid-template-columns:120px 1fr auto;gap:16px;align-items:center}
+.bigAvatar{width:120px;height:120px;border-radius:24px;object-fit:cover;border:3px solid var(--green)}
+.twoCol{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+.listItem{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.listItem:last-child{border-bottom:0}
+.miniCards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.miniCard{padding:12px;border-radius:12px;background:#0a1b1f;border:1px solid rgba(255,255,255,.04)}
+.forecastHero{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+.lineBox{height:90px;border-radius:14px;background:linear-gradient(180deg,#0f2731,#0a1b1f);position:relative;overflow:hidden}
+.lineSvg{position:absolute;inset:0}
+.locationCards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+
+.mapLayout{display:grid;grid-template-columns:1.4fr .6fr;gap:16px}
+.mapCanvas{position:relative;min-height:650px;background:
+radial-gradient(circle at 30% 20%,rgba(40,199,111,.08),transparent 28%),
+linear-gradient(180deg,#0b252c,#07171b);overflow:hidden}
+.mapSvg{width:100%;height:650px;display:block}
+.mapLabel{fill:#d9efef;font-size:15px;font-weight:700}
+.mapSub{fill:#89a4aa;font-size:11px}
+.marker{cursor:pointer;transform-origin:center;transition:.2s}
+.marker:hover{transform:scale(1.15)}
+.marker circle{fill:var(--green);stroke:#dffff0;stroke-width:2}
+.marker text{fill:#fff;font-size:13px;font-weight:800;pointer-events:none}
+.hotspotCard{padding:14px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
+.hotspotCard:hover,.hotspotCard.active{background:#123137}
+.speciesTags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{font-size:12px;padding:5px 8px;border-radius:999px;background:#123137;color:#d9efef}
+.mapLegend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+.mapLegend span{font-size:12px;color:var(--muted)}
+.spotDetails h2{margin-top:0}
+.detailHero{height:180px;width:100%;object-fit:cover;border-radius:14px}
+.spotGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.spotMetric{background:#0a1b1f;padding:10px;border-radius:10px}
+@media(max-width:980px){
+  .mapLayout{grid-template-columns:1fr}
+  .mapCanvas,.mapSvg{min-height:500px;height:500px}
+}
+
+
+.mapFirstWrap{position:relative;height:calc(100vh - 66px);min-height:620px;background:#071417}
+#mapFirst{position:absolute;inset:0}
+.mapTopBar{position:absolute;top:12px;left:12px;right:12px;z-index:500;display:flex;gap:8px;align-items:center}
+.mapSearch{flex:1;background:#0b2024;border:1px solid var(--line);color:#fff;padding:13px 14px;border-radius:14px;box-shadow:0 8px 25px rgba(0,0,0,.25)}
+.portFilters{position:absolute;top:68px;left:12px;right:12px;z-index:500;display:flex;gap:8px;overflow:auto;padding-bottom:4px}
+.portFilters button{white-space:nowrap;background:#0b2024;border:1px solid var(--line);color:#fff;padding:9px 12px;border-radius:999px}
+.portFilters button.active{background:var(--green);color:#05110b;border-color:var(--green)}
+.mapFab{position:absolute;right:14px;bottom:185px;z-index:500;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:#0b2024;color:#fff;font-size:20px}
+.mapSelection{position:absolute;left:10px;right:10px;bottom:12px;z-index:500;background:rgba(7,20,23,.96);border:1px solid var(--line);border-radius:18px;padding:12px;display:none;box-shadow:0 15px 40px rgba(0,0,0,.35)}
+.mapSelection.show{display:block}
+.selHead{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center}
+.selHead img{width:64px;height:64px;border-radius:12px;object-fit:cover}
+.mapActions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.mapActions button{background:#10292e;border:1px solid var(--line);color:#fff;padding:10px 6px;border-radius:12px;font-size:12px}
+.mapActions button span{display:block;font-size:22px;margin-bottom:3px}
+.detailTop{display:flex;align-items:center;gap:10px;position:sticky;top:65px;z-index:10;background:#071417;padding:10px 0}
+.detailHeroFull{width:100%;height:280px;object-fit:cover;border-radius:18px}
+.detailTabs{display:flex;gap:8px;overflow:auto;margin:14px 0}
+.detailTabs button{white-space:nowrap}
+.galleryGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.galleryGrid img{width:100%;height:180px;object-fit:cover;border-radius:12px}
+@media(max-width:900px){
+ .mapFirstWrap{height:calc(100vh - 58px)}
+ .mapActions{grid-template-columns:repeat(4,1fr)}
+ .galleryGrid{grid-template-columns:repeat(2,1fr)}
+ .galleryGrid img{height:140px}
+}
+
+
+.proForecastGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
+.chartCard{padding:14px}
+.chartWrap{position:relative;height:250px;margin-top:10px}
+.hourlyStrip{display:flex;gap:8px;overflow:auto;padding-bottom:4px;margin-top:14px}
+.hourChip{min-width:86px;background:#0a1b1f;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.scoreBand{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.scoreBand .band{padding:12px;border-radius:12px;background:#0a1b1f;border:1px solid rgba(255,255,255,.04)}
+.forecastSummary{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+@media(max-width:900px){
+ .proForecastGrid,.forecastSummary{grid-template-columns:1fr}
+ .scoreBand{grid-template-columns:repeat(2,1fr)}
+ .chartWrap{height:220px}
+}
+
+
+.photoUploadBox{border:1px dashed #35636a;background:#08191d;border-radius:14px;padding:14px;text-align:center}
+.photoUploadBox input{display:none}.photoPreview{display:none;width:100%;max-height:320px;object-fit:cover;border-radius:12px;margin-top:10px}.photoPreview.show{display:block}
+.uploadButton{display:inline-block;background:#17373d;color:#fff;border:1px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer}
+.postImageLocal{width:100%;display:block;max-height:520px;object-fit:cover}
+.mainForecastCharts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.forecastChartCard{padding:14px}.forecastChartArea{height:245px;position:relative;margin-top:10px}
+.forecastToolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.forecastToolbar select{background:#10292e;color:#fff;border:1px solid var(--line);padding:10px 12px;border-radius:10px}
+.forecastInsightGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.insightCard{background:#0a1b1f;border:1px solid rgba(255,255,255,.05);padding:12px;border-radius:12px}
+@media(max-width:900px){.mainForecastCharts{grid-template-columns:1fr}.forecastInsightGrid{grid-template-columns:repeat(2,1fr)}.forecastChartArea{height:220px}}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-end;justify-content:center;z-index:50}.modal.open{display:flex}
+.sheet{background:#0c2024;width:min(640px,100%);border-radius:18px 18px 0 0;padding:18px;max-height:90vh;overflow:auto}
+.field{margin-bottom:12px}.field label{display:block;margin-bottom:6px;color:var(--muted)}.field input,.field select,.field textarea{width:100%;background:#07171a;color:white;border:1px solid var(--line);padding:12px;border-radius:10px}
+.bottom{display:none}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:90}.toast.show{opacity:1}
+@media(max-width:980px){
+  .layout,.twoCol,.forecastHero{grid-template-columns:1fr}
+  .left,.right{display:none}
+  .tripGrid,.communityGrid,.locationCards{grid-template-columns:1fr}
+  .marketGrid{grid-template-columns:repeat(2,1fr)}
+  .forecastDays{grid-template-columns:repeat(2,1fr)}
+  .achGrid{grid-template-columns:repeat(2,1fr)}
+  .profileHero{grid-template-columns:90px 1fr}
+  .bigAvatar{width:90px;height:90px}
+  .postBtn{padding:9px 12px}
+}
+@media(max-width:900px){
+  .top{padding:10px 12px}
+  .nav{display:none}
+  .sectionWrap{padding:12px}
+  .bottom{display:grid;position:fixed;bottom:0;left:0;right:0;z-index:30;grid-template-columns:repeat(6,1fr);background:#071417;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  .bottom button{background:transparent;border:0;color:var(--muted);padding:10px 4px;font-size:11px}
+  .bottom button.active{color:var(--green)}
+  body{padding-bottom:70px}
+  .brand{font-size:21px}
+}
+
+@media(max-width:900px){
+  .bottom{
+    position:fixed !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    z-index:2000 !important;
+    display:grid !important;
+    background:rgba(7,20,23,.98) !important;
+    border-top:1px solid var(--line) !important;
+    box-shadow:0 -8px 24px rgba(0,0,0,.35);
+    padding-bottom:max(env(safe-area-inset-bottom),4px) !important;
+  }
+  .bottom button{
+    min-width:0;
+    padding:9px 2px 8px !important;
+    font-size:10px !important;
+  }
+  body{
+    padding-bottom:calc(70px + env(safe-area-inset-bottom)) !important;
+  }
+  .mapFirstWrap{
+    height:calc(100vh - 58px - 70px - env(safe-area-inset-bottom)) !important;
+    min-height:480px;
+  }
+  .mapSelection{
+    bottom:82px !important;
+  }
+  .leaflet-control-container{
+    z-index:700 !important;
+  }
+}
+
+
+.userLink{display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:12px;padding:2px}
+.userLink:hover{background:rgba(255,255,255,.04)}
+.profilePopupHead{display:grid;grid-template-columns:88px 1fr;gap:14px;align-items:center}
+.profilePopupAvatar{width:88px;height:88px;border-radius:22px;object-fit:cover;border:3px solid var(--green)}
+.profilePopupStats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.profilePopupStats div{background:#08191d;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.profilePopupBadges{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+.profilePopupBadge{display:flex;gap:10px;align-items:center;background:#08191d;border:1px solid var(--line);border-radius:12px;padding:10px}
+.profilePopupActions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+@media(max-width:520px){
+  .profilePopupStats{grid-template-columns:repeat(3,1fr)}
+  .profilePopupBadges{grid-template-columns:1fr}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div class="brand">🐟 Angler<b>MY</b> 🇲🇾</div>
+  <nav class="nav">
+    <button class="active" data-page="home">Home</button>
+    <button data-page="trips">Trips</button>
+    <button data-page="mapfirst">Fishing Map</button>
+    <button data-page="forecast">Forecast</button>
+    <button data-page="market">Market</button>
+    <button data-page="community">Community</button>
+    <button data-page="profile">Profile</button>
+  </nav>
+  <button class="postBtn" onclick="openModal('postModal')">＋ Post</button>
+</header>
+
+
+<section id="mapfirst" class="section">
+  <div class="mapFirstWrap">
+    <div id="mapFirst"></div>
+
+    <div class="mapTopBar">
+      <input id="mapSearch" class="mapSearch" placeholder="Search fishing port, jetty, kelong or state..." oninput="searchPorts(this.value)">
+    </div>
+
+    <div class="portFilters">
+      <button class="active" onclick="filterPorts('all',this)">All</button>
+      <button onclick="filterPorts('kelong',this)">Kelong</button>
+      <button onclick="filterPorts('jetty',this)">Jetty</button>
+      <button onclick="filterPorts('offshore',this)">Offshore</button>
+      <button onclick="filterPorts('freshwater',this)">Freshwater</button>
+      <button onclick="filterPorts('pond',this)">Pond</button>
+    </div>
+
+    <button class="mapFab" onclick="locateOnFirstMap()">◎</button>
+
+    <div id="mapSelection" class="mapSelection">
+      <div class="selHead">
+        <img id="selImage" src="">
+        <div>
+          <b id="selName">Fishing Port</b>
+          <div id="selType" class="small muted"></div>
+          <div id="selMini" class="small green"></div>
+        </div>
+        <button class="btn alt" onclick="closeSelection()">✕</button>
+      </div>
+      <div class="mapActions">
+        <button onclick="openLocationDetail('forecast')"><span>🌤️</span>Forecast</button>
+        <button onclick="openLocationDetail('species')"><span>🐟</span>Species</button>
+        <button onclick="openLocationDetail('gallery')"><span>🖼️</span>Images</button>
+        <button onclick="openLocationDetail('trips')"><span>🎣</span>Trips</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="locationdetail" class="section">
+  <div class="sectionWrap">
+    <div class="detailTop">
+      <button class="btn alt" onclick="showPage('mapfirst')">← Back to Map</button>
+      <div><b id="detailTitle">Fishing Location</b><div id="detailSubtitle" class="small muted"></div></div>
+    </div>
+
+    <img id="detailHero" class="detailHeroFull" src="">
+
+    <div class="detailTabs">
+      <button class="pill active" data-detailtab="overview" onclick="showDetailTab('overview',this)">Overview</button>
+      <button class="pill" data-detailtab="forecast" onclick="showDetailTab('forecast',this)">Forecast</button>
+      <button class="pill" data-detailtab="species" onclick="showDetailTab('species',this)">Species</button>
+      <button class="pill" data-detailtab="gallery" onclick="showDetailTab('gallery',this)">Images</button>
+      <button class="pill" data-detailtab="trips" onclick="showDetailTab('trips',this)">Trips</button>
+    </div>
+
+    <div id="detail-overview" class="detailPane">
+      <div class="twoCol">
+        <div class="card pad">
+          <h3>Location Overview</h3>
+          <div id="detailOverviewText" class="muted"></div>
+          <div id="detailTags" class="speciesTags" style="margin-top:12px"></div>
+        </div>
+        <div class="card pad">
+          <h3>Quick Conditions</h3>
+          <div class="spotGrid">
+            <div class="spotMetric"><b id="dScore">—</b><div class="small muted">Fishing score</div></div>
+            <div class="spotMetric"><b id="dWeather">—</b><div class="small muted">Weather</div></div>
+            <div class="spotMetric"><b id="dWind">—</b><div class="small muted">Wind</div></div>
+            <div class="spotMetric"><b id="dMarine">—</b><div class="small muted">Marine</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+<div id="detail-forecast" class="detailPane" style="display:none">
+  <div class="forecastSummary">
+    <div class="card pad">
+      <div class="sideTitle">
+        <div>
+          <h3 style="margin:0">Professional Fishing Forecast</h3>
+          <div id="detailForecastStatus" class="small muted">Loading live forecast...</div>
+        </div>
+        <div class="pill active" id="forecastUpdated">Live</div>
+      </div>
+
+      <div class="metricGrid" style="margin-top:14px">
+        <div class="metric"><b id="fTemp">—</b><div class="small muted">Temperature</div></div>
+        <div class="metric"><b id="fRain">—</b><div class="small muted">Rain now</div></div>
+        <div class="metric"><b id="fWind">—</b><div class="small muted">Wind now</div></div>
+        <div class="metric"><b id="fWave">—</b><div class="small muted">Wave now</div></div>
+        <div class="metric"><b id="fBest">—</b><div class="small muted">Best time</div></div>
+        <div class="metric"><b id="fScore">—</b><div class="small muted">Fishing score</div></div>
+      </div>
+
+      <div id="hourlyStrip" class="hourlyStrip"></div>
+    </div>
+
+    <div class="card pad">
+      <h3 style="margin-top:0">Fishing Conditions</h3>
+      <div class="listItem"><span>Morning window</span><b id="morningWindow" class="green">—</b></div>
+      <div class="listItem"><span>Evening window</span><b id="eveningWindow">—</b></div>
+      <div class="listItem"><span>Rain risk</span><b id="rainRisk">—</b></div>
+      <div class="listItem"><span>Wind safety</span><b id="windSafety">—</b></div>
+      <div class="listItem"><span>Sea condition</span><b id="seaCondition">—</b></div>
+      <div class="listItem"><span>Recommended method</span><b id="recommendedMethod">—</b></div>
+    </div>
+  </div>
+
+  <div class="proForecastGrid">
+    <div class="card chartCard">
+      <div class="sideTitle"><b>Temperature</b><span class="small muted">Next 24 hours</span></div>
+      <div class="chartWrap"><canvas id="tempChart"></canvas></div>
+    </div>
+
+    <div class="card chartCard">
+      <div class="sideTitle"><b>Rain Probability</b><span class="small muted">Next 24 hours</span></div>
+      <div class="chartWrap"><canvas id="rainChart"></canvas></div>
+    </div>
+
+    <div class="card chartCard">
+      <div class="sideTitle"><b>Wind Speed</b><span class="small muted">Next 24 hours</span></div>
+      <div class="chartWrap"><canvas id="windChart"></canvas></div>
+    </div>
+
+    <div class="card chartCard">
+      <div class="sideTitle"><b>Wave Height</b><span class="small muted">Marine forecast</span></div>
+      <div class="chartWrap"><canvas id="waveChart"></canvas></div>
+    </div>
+
+    <div class="card chartCard" style="grid-column:1/-1">
+      <div class="sideTitle"><b>Fishing Score by Hour</b><span class="small muted">Combined weather + marine estimate</span></div>
+      <div class="chartWrap"><canvas id="scoreChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card pad" style="margin-top:14px">
+    <div class="sideTitle"><b>Score Interpretation</b><span class="small muted">Demo algorithm</span></div>
+    <div class="scoreBand">
+      <div class="band"><b class="green">8.0–10</b><div class="small muted">Excellent conditions</div></div>
+      <div class="band"><b>6.5–7.9</b><div class="small muted">Good conditions</div></div>
+      <div class="band"><b>5.0–6.4</b><div class="small muted">Moderate conditions</div></div>
+      <div class="band"><b style="color:#ff8a8a">Below 5</b><div class="small muted">Poor or risky conditions</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="detail-species" class="detailPane" style="display:none">
+      <div class="card pad">
+        <h3>Common Species</h3>
+        <div id="speciesList" class="achGrid"></div>
+      </div>
+    </div>
+
+    <div id="detail-gallery" class="detailPane" style="display:none">
+      <div class="galleryGrid" id="detailGallery"></div>
+    </div>
+
+    <div id="detail-trips" class="detailPane" style="display:none">
+      <div class="card pad">
+        <h3>Trips Near This Location</h3>
+        <p class="muted">Available trips can be filtered by this fishing port or nearby area.</p>
+        <button class="btn" onclick="showPage('trips')">View Available Trips</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="home" class="section active">
+  <div class="layout">
+    <aside class="left">
+      <div class="card profile">
+        <img class="avatar" src="https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&w=300&q=80">
+        <h3 style="margin:8px 0 0">Amirul Angler</h3>
+        <div class="muted">Penang, Malaysia</div>
+        <div class="pill active" style="margin-top:10px">Level 18 • Pro Angler</div>
+        <div class="stats">
+          <div><b>428</b><br><span class="small muted">Catches</span></div>
+          <div><b>2.1K</b><br><span class="small muted">Followers</span></div>
+          <div><b>356</b><br><span class="small muted">Following</span></div>
+        </div>
+      </div>
+      <div class="card pad" style="margin-top:14px">
+        <div class="sideTitle"><b>Top Achievements</b><span class="green small" onclick="showPage('profile')" style="cursor:pointer">View all</span></div>
+        <div class="badge"><span class="badgeIcon">🏕️</span><div><b>Kelong Expert</b><div class="small muted">10 kelong trips</div></div></div>
+        <div class="badge"><span class="badgeIcon">🛡️</span><div><b>Trusted Organiser</b><div class="small muted">5 completed trips</div></div></div>
+        <div class="badge"><span class="badgeIcon">🐟</span><div><b>Siakap Hunter</b><div class="small muted">20+ verified catches</div></div></div>
+        <div class="badge"><span class="badgeIcon">💬</span><div><b>Helpful Angler</b><div class="small muted">25 useful replies</div></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="card composer">
+        <input onclick="openModal('postModal')" placeholder="Share your catch..." readonly>
+        <div class="actions">
+          <button onclick="openModal('postModal')">📷 Photo / Video</button>
+          <button onclick="openModal('tripModal')">🗓️ Create Trip</button>
+          <button onclick="showPage('market')">🛒 Sell Gear</button>
+        </div>
+      </div>
+
+      <div class="filters" style="margin-top:12px">
+        <button class="pill active">For You</button>
+        <button class="pill">Following</button>
+        <button class="pill">Nearby</button>
+        <button class="pill">Popular</button>
+      </div>
+
+      <div class="feed" id="feed">
+        <article class="card">
+          <div class="pad postHead">
+            <div class="userLink" onclick="openUserProfile('amirul')">
+              <img class="miniAvatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80">
+              <div><b>Amirul Angler</b><div class="small muted">Penang • 2h ago</div></div>
+            </div>
+            <span style="margin-left:auto">•••</span>
+          </div>
+          <div class="pad">
+            <h3 style="margin:0 0 5px">Siakap Megah di Kelong!</h3>
+            <div class="muted">Masa air pasang penuh, arus tenang. Teknik: Bottom Fishing • Umpan: Udang Hidup</div>
+          </div>
+          <img class="postImg" src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1000&q=85">
+          <div class="postActions">
+            <button onclick="like(this)">❤️ <span>128</span></button>
+            <button onclick="toast('Comment box opened')">💬 23</button>
+            <button onclick="toast('Post shared')">↗️ 31</button>
+            <button style="margin-left:auto" onclick="toast('Post saved')">🔖</button>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="pad postHead">
+            <div class="userLink" onclick="openUserProfile('hafiz')">
+              <img class="miniAvatar" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80">
+              <div><b>Hafiz Angler</b><div class="small muted">Johor • 4h ago</div></div>
+            </div>
+          </div>
+          <div class="pad">
+            <h3 style="margin:0 0 5px">MJ on Soft Plastic!</h3>
+            <div class="muted">Slow retrieve near structure. Result padu! 💪</div>
+          </div>
+          <img class="postImg" src="https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=1000&q=85">
+          <div class="postActions">
+            <button onclick="like(this)">❤️ <span>76</span></button>
+            <button onclick="toast('Comment box opened')">💬 12</button>
+            <button onclick="toast('Post shared')">↗️ 8</button>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <aside class="right">
+      <div class="card pad">
+        <div class="sideTitle"><b>Today's Forecast</b><span class="green small" onclick="showPage('forecast')" style="cursor:pointer">Full forecast</span></div>
+        <div class="weatherBig">29°C ☀️</div>
+        <div class="muted">Partly cloudy • Penang</div>
+        <div class="metricGrid" style="margin-top:12px">
+          <div class="metric"><b>12 km/h</b><div class="small muted">Wind</div></div>
+          <div class="metric"><b>10%</b><div class="small muted">Rain</div></div>
+          <div class="metric"><b>78%</b><div class="small muted">Humidity</div></div>
+        </div>
+        <div style="margin-top:12px"><b>Fishing score <span class="green">8.6/10</span></b><div class="small muted">Best: 5:30–9:30 AM • High tide 8:15 AM</div></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="pad sideTitle"><b>Upcoming Trips</b><span class="green small" onclick="showPage('trips')" style="cursor:pointer">View all</span></div>
+        <div class="trip"><img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=200&q=80"><div><b>Pulau Aman Kelong</b><div class="small muted">1 Aug • RM80 • 2 seats</div></div><button class="btn" onclick="openWhatsApp('Pulau Aman Kelong')">Join</button></div>
+        <div class="trip"><img src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=200&q=80"><div><b>Pangkor Boat Trip</b><div class="small muted">8 Aug • RM200 • 3 seats</div></div><button class="btn" onclick="openWhatsApp('Pangkor Boat Trip')">Book</button></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<section id="trips" class="section">
+  <div class="sectionWrap">
+    <div class="sectionHeader">
+      <div>
+        <h2 style="margin:0">Fishing Trips</h2>
+        <div class="muted">Find available dates and join trusted organisers</div>
+      </div>
+      <button class="btn" onclick="openModal('tripModal')">Create Free Trip</button>
+    </div>
+
+    <div class="filters">
+      <button class="pill active">All</button>
+      <button class="pill">Kelong</button>
+      <button class="pill">Offshore</button>
+      <button class="pill">Pond</button>
+      <button class="pill">Beginner Friendly</button>
+    </div>
+
+    <div class="tripGrid" id="tripGrid">
+      <div class="card tripCard">
+        <img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=85">
+        <div class="pad">
+          <h3>Pulau Aman Kelong Trip</h3>
+          <div class="muted">📍 Penang • Bottom fishing</div>
+          <div class="tripMeta">
+            <div>📅 1 Aug 2026</div><div>🕗 8 AM–5 PM</div>
+            <div>💰 RM80/person</div><div>👥 4/6 seats</div>
+          </div>
+          <button class="btn" onclick="openWhatsApp('Pulau Aman Kelong Trip')">Request to Join</button>
+        </div>
+      </div>
+
+      <div class="card tripCard">
+        <img src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=900&q=85">
+        <div class="pad">
+          <h3>Pangkor Offshore Jigging</h3>
+          <div class="muted">📍 Perak • Intermediate</div>
+          <div class="tripMeta">
+            <div>📅 8 Aug 2026</div><div>🕖 7 AM–4 PM</div>
+            <div>💰 RM200/person</div><div>👥 5/8 seats</div>
+          </div>
+          <button class="btn" onclick="openWhatsApp('Pangkor Offshore Jigging')">Book / Contact</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="forecast" class="section">
+<div class="sectionWrap">
+  <div class="sectionHeader">
+    <div><h2 style="margin:0">Professional Fishing Forecast</h2><div class="muted">Live weather, marine conditions and fishing-score analysis</div></div>
+    <div class="forecastToolbar">
+      <select id="mainForecastLocation" onchange="loadMainForecast()">
+        <option value="5.2826,100.2865,Penang / Batu Maung">Penang / Batu Maung</option>
+        <option value="4.2110,100.5730,Pangkor / Lumut">Pangkor / Lumut</option>
+        <option value="5.5450,101.3450,Tasik Temenggor">Tasik Temenggor</option>
+        <option value="3.3370,101.2490,Kuala Selangor">Kuala Selangor</option>
+        <option value="1.5630,104.2470,Desaru / Johor">Desaru / Johor</option>
+        <option value="5.9804,116.0735,Kota Kinabalu">Kota Kinabalu</option>
+      </select>
+      <button class="btn" onclick="loadMainForecast()">Refresh</button>
+    </div>
+  </div>
+  <div class="forecastSummary">
+    <div class="card pad">
+      <div class="sideTitle"><div><b id="mainForecastName">Penang / Batu Maung</b><div id="mainForecastStatus" class="small muted">Loading live forecast...</div></div><div id="mainForecastScoreBadge" class="pill active">— / 10</div></div>
+      <div class="metricGrid" style="margin-top:14px">
+        <div class="metric"><b id="mfTemp">—</b><div class="small muted">Temperature</div></div>
+        <div class="metric"><b id="mfRain">—</b><div class="small muted">Rain now</div></div>
+        <div class="metric"><b id="mfWind">—</b><div class="small muted">Wind</div></div>
+        <div class="metric"><b id="mfWave">—</b><div class="small muted">Wave</div></div>
+        <div class="metric"><b id="mfBest">—</b><div class="small muted">Best fishing time</div></div>
+        <div class="metric"><b id="mfHumidity">—</b><div class="small muted">Humidity</div></div>
+      </div>
+      <div id="mainHourlyStrip" class="hourlyStrip"></div>
+    </div>
+    <div class="card pad">
+      <h3 style="margin-top:0">Fishing Recommendation</h3>
+      <div class="listItem"><span>Morning window</span><b id="mfMorning" class="green">—</b></div>
+      <div class="listItem"><span>Evening window</span><b id="mfEvening">—</b></div>
+      <div class="listItem"><span>Rain risk</span><b id="mfRainRisk">—</b></div>
+      <div class="listItem"><span>Wind safety</span><b id="mfWindSafety">—</b></div>
+      <div class="listItem"><span>Sea condition</span><b id="mfSea">—</b></div>
+      <div class="listItem"><span>Recommended method</span><b id="mfMethod">—</b></div>
+    </div>
+  </div>
+  <div class="mainForecastCharts">
+    <div class="card forecastChartCard"><div class="sideTitle"><b>Temperature</b><span class="small muted">Next 24 hours</span></div><div class="forecastChartArea"><canvas id="mainTempChart"></canvas></div></div>
+    <div class="card forecastChartCard"><div class="sideTitle"><b>Rain Probability</b><span class="small muted">Next 24 hours</span></div><div class="forecastChartArea"><canvas id="mainRainChart"></canvas></div></div>
+    <div class="card forecastChartCard"><div class="sideTitle"><b>Wind Speed</b><span class="small muted">Next 24 hours</span></div><div class="forecastChartArea"><canvas id="mainWindChart"></canvas></div></div>
+    <div class="card forecastChartCard"><div class="sideTitle"><b>Wave Height</b><span class="small muted">Marine forecast</span></div><div class="forecastChartArea"><canvas id="mainWaveChart"></canvas></div></div>
+    <div class="card forecastChartCard" style="grid-column:1/-1"><div class="sideTitle"><b>Fishing Score by Hour</b><span class="small muted">Weather + marine estimate</span></div><div class="forecastChartArea"><canvas id="mainScoreChart"></canvas></div></div>
+  </div>
+  <div class="card pad" style="margin-top:16px"><div class="sideTitle"><b>Forecast Interpretation</b><span class="small muted">Decision support for anglers</span></div><div class="forecastInsightGrid"><div class="insightCard"><b class="green">8.0–10</b><div class="small muted">Excellent fishing conditions</div></div><div class="insightCard"><b>6.5–7.9</b><div class="small muted">Good conditions</div></div><div class="insightCard"><b>5.0–6.4</b><div class="small muted">Moderate conditions</div></div><div class="insightCard"><b style="color:#ff8a8a">Below 5</b><div class="small muted">Poor or risky conditions</div></div></div></div>
+</div>
+</section>
+<section id="market" class="section">
+  <div class="sectionWrap">
+    <div class="sectionHeader">
+      <div>
+        <h2 style="margin:0">Fishing Marketplace</h2>
+        <div class="muted">Buy and sell fishing gear locally</div>
+      </div>
+      <button class="btn" onclick="toast('Sell item form opened')">Sell Item</button>
+    </div>
+
+    <div class="filters">
+      <button class="pill active">All Gear</button>
+      <button class="pill">Rods</button>
+      <button class="pill">Reels</button>
+      <button class="pill">Lures</button>
+      <button class="pill">Used Gear</button>
+    </div>
+
+    <div class="marketGrid">
+      <div class="card product">
+        <img src="https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=500&q=80">
+        <h3>Travel Spinning Rod</h3>
+        <div class="muted">Used • Penang</div>
+        <div class="price">RM180</div>
+        <button class="btn" onclick="openWhatsApp('Travel Spinning Rod')">Contact Seller</button>
+      </div>
+      <div class="card product">
+        <img src="https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=500&q=80">
+        <h3>Spinning Reel 3000</h3>
+        <div class="muted">Like new • Perak</div>
+        <div class="price">RM220</div>
+        <button class="btn" onclick="openWhatsApp('Spinning Reel 3000')">Contact Seller</button>
+      </div>
+      <div class="card product">
+        <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=500&q=80">
+        <h3>Siakap Lure Set</h3>
+        <div class="muted">New • Kedah</div>
+        <div class="price">RM65</div>
+        <button class="btn" onclick="openWhatsApp('Siakap Lure Set')">Contact Seller</button>
+      </div>
+      <div class="card product">
+        <img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=500&q=80">
+        <h3>Kelong Starter Kit</h3>
+        <div class="muted">Bundle • Penang</div>
+        <div class="price">RM95</div>
+        <button class="btn" onclick="openWhatsApp('Kelong Starter Kit')">Contact Seller</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="community" class="section">
+  <div class="sectionWrap">
+    <div class="sectionHeader">
+      <div>
+        <h2 style="margin:0">Local Communities</h2>
+        <div class="muted">Join anglers by state, species or technique</div>
+      </div>
+    </div>
+
+    <div class="communityGrid">
+      <div class="card community"><img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=200&q=80"><div><h3>Penang Anglers Club</h3><div class="muted">2.3K members</div></div><button class="btn" style="margin-left:auto" onclick="joinCommunity(this)">Join</button></div>
+      <div class="card community"><img src="https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=200&q=80"><div><h3>Kelong Hunters Malaysia</h3><div class="muted">1.8K members</div></div><button class="btn" style="margin-left:auto" onclick="joinCommunity(this)">Join</button></div>
+      <div class="card community"><img src="https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=200&q=80"><div><h3>Siakap Casting Utara</h3><div class="muted">3.1K members</div></div><button class="btn" style="margin-left:auto" onclick="joinCommunity(this)">Join</button></div>
+      <div class="card community"><img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=200&q=80"><div><h3>Beginner Anglers Malaysia</h3><div class="muted">3.6K members</div></div><button class="btn" style="margin-left:auto" onclick="joinCommunity(this)">Join</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="profile" class="section">
+  <div class="sectionWrap">
+    <div class="sectionHeader">
+      <div>
+        <h2 style="margin:0">Angler Profile</h2>
+        <div class="muted">Identity, achievements, catches and trip reputation</div>
+      </div>
+      <button class="btn" onclick="toast('Edit profile opened')">Edit Profile</button>
+    </div>
+
+    <div class="card pad">
+      <div class="profileHero">
+        <img class="bigAvatar" src="https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&w=400&q=80">
+        <div>
+          <h2 style="margin:0">Amirul Angler</h2>
+          <div class="muted">Penang, Malaysia • Bottom Fishing • Casting • Kelong Trips</div>
+          <div class="filters" style="margin:12px 0 0">
+            <button class="pill active">Level 18 • Pro Angler</button>
+            <button class="pill">⭐ 4.9 organiser rating</button>
+            <button class="pill">✅ Verified profile</button>
+          </div>
+        </div>
+        <div class="miniCards">
+          <div class="miniCard"><b>428</b><div class="small muted">Catches</div></div>
+          <div class="miniCard"><b>18</b><div class="small muted">Species</div></div>
+          <div class="miniCard"><b>12</b><div class="small muted">Trips joined</div></div>
+          <div class="miniCard"><b>5</b><div class="small muted">Trips organised</div></div>
+          <div class="miniCard"><b>2.1K</b><div class="small muted">Followers</div></div>
+          <div class="miniCard"><b>96%</b><div class="small muted">Join reliability</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="twoCol" style="margin-top:16px">
+      <div>
+        <div class="card pad">
+          <div class="sideTitle"><b>Achievements & Badges</b><span class="green small">10 unlocked</span></div>
+          <div class="achGrid" style="margin-top:14px">
+            <div class="card achCard"><div class="icon">🏕️</div><b>Kelong Expert</b><div class="small muted">10 kelong trips</div></div>
+            <div class="card achCard"><div class="icon">🐟</div><b>Siakap Hunter</b><div class="small muted">20 siakap catches</div></div>
+            <div class="card achCard"><div class="icon">🛡️</div><b>Trusted Organiser</b><div class="small muted">5 trips hosted</div></div>
+            <div class="card achCard"><div class="icon">💬</div><b>Helpful Angler</b><div class="small muted">25 helpful replies</div></div>
+            <div class="card achCard"><div class="icon">🎯</div><b>10 Species</b><div class="small muted">Species milestone</div></div>
+            <div class="card achCard"><div class="icon">🌊</div><b>Offshore Explorer</b><div class="small muted">3 offshore trips</div></div>
+            <div class="card achCard"><div class="icon">♻️</div><b>Catch & Release</b><div class="small muted">10 release records</div></div>
+            <div class="card achCard"><div class="icon">🏆</div><b>Trip Master</b><div class="small muted">Organise 5 trips</div></div>
+          </div>
+        </div>
+
+        <div class="card pad" style="margin-top:16px">
+          <div class="sideTitle"><b>Recent Catches</b><span class="green small">View all</span></div>
+          <div class="marketGrid" style="margin-top:14px;grid-template-columns:repeat(3,1fr)">
+            <div class="card product"><img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=500&q=80"><div><b>Siakap</b></div><div class="small muted">3.2 kg • Penang</div></div>
+            <div class="card product"><img src="https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=500&q=80"><div><b>MJ</b></div><div class="small muted">1.8 kg • Johor</div></div>
+            <div class="card product"><img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=500&q=80"><div><b>Kerapu</b></div><div class="small muted">2.6 kg • Perak</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card pad">
+          <div class="sideTitle"><b>About</b><span class="green small">Profile strength 90%</span></div>
+          <p class="muted">Active Malaysian angler who enjoys kelong trips, bottom fishing and light casting. Interested in siakap, jenahak and kerapu. Open to joining weekend trips around Penang and Perak.</p>
+          <div class="listItem"><span>Favourite techniques</span><b>Bottom, Casting</b></div>
+          <div class="listItem"><span>Target species</span><b>Siakap, Jenahak, Toman</b></div>
+          <div class="listItem"><span>State badges</span><b>Penang, Perak, Kedah</b></div>
+        </div>
+
+        <div class="card pad" style="margin-top:16px">
+          <div class="sideTitle"><b>Trip Reputation</b><span class="green">Trusted</span></div>
+          <div class="listItem"><span>Trips organised</span><b>5</b></div>
+          <div class="listItem"><span>Trips joined</span><b>12</b></div>
+          <div class="listItem"><span>Average review</span><b>4.9 / 5</b></div>
+          <div class="listItem"><span>Attendance reliability</span><b>96%</b></div>
+          <div class="listItem"><span>Verified organiser</span><b>Yes</b></div>
+          <button class="btn" style="width:100%;margin-top:12px" onclick="openWhatsApp('Amirul Angler fishing trip')">Invite to Fish</button>
+        </div>
+
+        <div class="card pad" style="margin-top:16px">
+          <div class="sideTitle"><b>Next Achievement</b><span class="small muted">Progress</span></div>
+          <div class="listItem"><span>20 Species Explorer</span><b>12 / 20</b></div>
+          <div style="height:10px;border-radius:999px;background:#0a1b1f;overflow:hidden;margin-top:8px">
+            <div style="width:60%;height:100%;background:var(--green)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="bottom">
+  <button class="active" data-page="home">🏠<br>Home</button>
+  <button data-page="trips">🎣<br>Trips</button>
+  <button data-page="forecast">🌤️<br>Forecast</button>
+  <button data-page="mapfirst">🗺️<br>Map</button>
+  
+  <button data-page="market">🛒<br>Market</button>
+  <button data-page="profile">👤<br>Profile</button>
+</div>
+
+
+<div id="profilePopupModal" class="modal" onclick="closeOnBackdrop(event,'profilePopupModal')">
+  <div class="sheet">
+    <div class="profilePopupHead">
+      <img id="popupProfileAvatar" class="profilePopupAvatar" src="">
+      <div>
+        <h2 id="popupProfileName" style="margin:0"></h2>
+        <div id="popupProfileLocation" class="muted"></div>
+        <div id="popupProfileLevel" class="pill active" style="display:inline-block;margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="profilePopupStats">
+      <div><b id="popupProfileCatches">0</b><div class="small muted">Catches</div></div>
+      <div><b id="popupProfileFollowers">0</b><div class="small muted">Followers</div></div>
+      <div><b id="popupProfileTrips">0</b><div class="small muted">Trips</div></div>
+    </div>
+
+    <div class="card pad" style="margin-top:14px;background:#08191d">
+      <b>About</b>
+      <p id="popupProfileAbout" class="muted" style="margin-bottom:0"></p>
+    </div>
+
+    <div style="margin-top:14px">
+      <div class="sideTitle"><b>Expertise & Achievements</b><span id="popupProfileRating" class="green"></span></div>
+      <div id="popupProfileBadges" class="profilePopupBadges"></div>
+    </div>
+
+    <div class="profilePopupActions">
+      <button class="btn" onclick="followPopupUser()">Follow</button>
+      <button class="btn alt" onclick="invitePopupUser()">Invite to Fish</button>
+    </div>
+
+    <button class="btn alt" style="width:100%;margin-top:10px" onclick="closeModal('profilePopupModal')">Close</button>
+  </div>
+</div>
+
+<div id="postModal" class="modal" onclick="closeOnBackdrop(event,'postModal')"><div class="sheet">
+<h2>Share Your Catch</h2>
+<div class="photoUploadBox"><label class="uploadButton" for="postPhoto">📷 Choose Photo</label><input id="postPhoto" type="file" accept="image/*" capture="environment" onchange="previewPostPhoto(event)"><div class="small muted" style="margin-top:8px">Choose from gallery or use your phone camera.</div><img id="postPhotoPreview" class="photoPreview" alt="Photo preview"></div>
+<div class="field" style="margin-top:12px"><label>Catch title</label><input id="postTitle" value="My latest catch!"></div>
+<div class="field"><label>Species</label><input id="species" placeholder="e.g. Siakap"></div>
+<div class="field"><label>Weight</label><input id="postWeight" placeholder="e.g. 3.2 kg"></div>
+<div class="field"><label>Technique / bait</label><input id="postTechnique" placeholder="e.g. Bottom fishing • Live prawn"></div>
+<div class="field"><label>Story</label><textarea id="story" rows="4" placeholder="Tell the community about your catch..."></textarea></div>
+<div class="field"><label>Location privacy</label><select id="postPrivacy"><option>Approximate area only</option><option>State only</option><option>Private</option></select></div>
+<button class="btn" style="width:100%" onclick="addPost()">Publish Catch</button><button class="btn alt" style="width:100%;margin-top:8px" onclick="closeModal('postModal')">Cancel</button>
+</div></div>
+<div id="tripModal" class="modal" onclick="closeOnBackdrop(event,'tripModal')">
+  <div class="sheet">
+    <h2>Create Free Fishing Trip</h2>
+    <div class="field"><label>Trip name</label><input id="tripName" value="Weekend Fishing Trip"></div>
+    <div class="field"><label>Date</label><input type="date" id="tripDate"></div>
+    <div class="field"><label>Location</label><input id="tripLoc" value="Penang"></div>
+    <div class="field"><label>Price per person</label><input id="tripPrice" value="80"></div>
+    <div class="field"><label>Available seats</label><input id="tripSeats" type="number" value="4"></div>
+    <button class="btn" style="width:100%" onclick="addTrip()">Publish Trip</button>
+    <button class="btn alt" style="width:100%;margin-top:8px" onclick="closeModal('tripModal')">Cancel</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+let liveMap, liveMarkers=[];
+function showPage(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function closeOnBackdrop(e,id){if(e.target.id===id)closeModal(id)}
+function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
+function like(btn){let s=btn.querySelector('span');s.textContent=Number(s.textContent)+1;toast('Liked')}
+function joinCommunity(btn){btn.textContent='Joined';btn.classList.add('alt');toast('Community joined')}
+function openWhatsApp(item){
+  const text=encodeURIComponent('Hi, I found "'+item+'" on AnglerMY. Is it still available?');
+  window.open('https://wa.me/?text='+text,'_blank');
+}
+
+let selectedPostPhotoData='';
+const mainForecastCharts={};
+
+function previewPostPhoto(event){
+  const file=event.target.files&&event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{selectedPostPhotoData=e.target.result;const img=document.getElementById('postPhotoPreview');img.src=selectedPostPhotoData;img.classList.add('show');};
+  reader.readAsDataURL(file);
+}
+function escapeHtml(v){return String(v||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function saveDemoPost(post){try{const p=JSON.parse(localStorage.getItem('anglerMyDemoPosts')||'[]');p.unshift(post);localStorage.setItem('anglerMyDemoPosts',JSON.stringify(p.slice(0,8)));}catch(e){}}
+function renderSavedPosts(){try{JSON.parse(localStorage.getItem('anglerMyDemoPosts')||'[]').slice().reverse().forEach(p=>renderPostCard(p,true));}catch(e){}}
+function renderPostCard(post,prepend=true){
+  const image=post.image?`<img class="postImageLocal" src="${post.image}" alt="Catch photo">`:'';
+  const meta=[post.species,post.weight,post.technique].filter(Boolean).map(escapeHtml).join(' • ');
+  const card=`<article class="card"><div class="pad postHead"><div class="userLink" onclick="openUserProfile('you')"><img class="miniAvatar" src="https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&w=100&q=80"><div><b>You</b><div class="small muted">${escapeHtml(post.time||'Just now')} • Malaysia</div></div></div></div><div class="pad"><h3 style="margin:0 0 5px">${escapeHtml(post.title)}</h3>${meta?`<div class="green small" style="margin-bottom:5px">${meta}</div>`:''}<div class="muted">${escapeHtml(post.story||'Shared from AnglerMY.')}</div><div class="small muted" style="margin-top:6px">Privacy: ${escapeHtml(post.privacy||'Approximate area only')}</div></div>${image}<div class="postActions"><button onclick="like(this)">❤️ <span>0</span></button><button onclick="toast('Comment box opened')">💬 0</button><button onclick="toast('Post shared')">↗️ 0</button></div></article>`;
+  document.getElementById('feed').insertAdjacentHTML(prepend?'afterbegin':'beforeend',card);
+}
+function destroyMainForecastCharts(){Object.values(mainForecastCharts).forEach(c=>{try{c.destroy()}catch(e){}});Object.keys(mainForecastCharts).forEach(k=>delete mainForecastCharts[k]);}
+function makeMainLineChart(id,labels,data,yTitle,fill=false){const ctx=document.getElementById(id);if(!ctx||typeof Chart==='undefined')return;mainForecastCharts[id]=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,tension:.35,fill,borderWidth:3,pointRadius:2,pointHoverRadius:5}]},options:chartBaseOptions(yTitle)});}
+function makeMainBarChart(id,labels,data,yTitle){const ctx=document.getElementById(id);if(!ctx||typeof Chart==='undefined')return;mainForecastCharts[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,borderRadius:6}]},options:chartBaseOptions(yTitle)});}
+async function loadMainForecast(){
+  const select=document.getElementById('mainForecastLocation');if(!select)return;
+  const [lat,lon,name]=select.value.split(',');document.getElementById('mainForecastName').textContent=name;document.getElementById('mainForecastStatus').textContent='Loading live forecast...';destroyMainForecastCharts();
+  try{
+    const [w,m]=await Promise.all([
+      fetchJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m&hourly=temperature_2m,precipitation_probability,wind_speed_10m,relative_humidity_2m&forecast_days=3&timezone=Asia%2FKuala_Lumpur`),
+      fetchJSON(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,wave_period&hourly=wave_height,wave_period&forecast_days=3&timezone=Asia%2FKuala_Lumpur`).catch(()=>null)
+    ]);
+    const c=w.current||{},mc=(m&&m.current)||{},times=(w.hourly?.time||[]).slice(0,24),temp=(w.hourly?.temperature_2m||[]).slice(0,24).map(Number),rain=(w.hourly?.precipitation_probability||[]).slice(0,24).map(Number),wind=(w.hourly?.wind_speed_10m||[]).slice(0,24).map(Number);
+    let waves=(m?.hourly?.wave_height||[]).slice(0,24).map(Number);if(!waves.length)waves=times.map(()=>Number(mc.wave_height||0));
+    const labels=times.map(t=>new Date(t).toLocaleTimeString([],{hour:'numeric'})),scores=times.map((t,i)=>hourlyFishingScore(rain[i]||0,wind[i]||0,waves[i]||0,new Date(t).getHours())),windows=bestWindows(times,scores),currentScore=calculateFishingScore(c,mc);
+    document.getElementById('mfTemp').textContent=Math.round(c.temperature_2m||0)+'°C';document.getElementById('mfRain').textContent=(c.precipitation||0)+' mm';document.getElementById('mfWind').textContent=Math.round(c.wind_speed_10m||0)+' km/h';document.getElementById('mfWave').textContent=mc.wave_height!=null?Number(mc.wave_height).toFixed(1)+' m':'—';document.getElementById('mfHumidity').textContent=Math.round(c.relative_humidity_2m||0)+'%';document.getElementById('mfBest').textContent=windows[0]?formatWindow(windows[0].t):'Early morning';document.getElementById('mainForecastScoreBadge').textContent=currentScore.toFixed(1)+' / 10';
+    document.getElementById('mfMorning').textContent=windows[0]?formatWindow(windows[0].t):'—';document.getElementById('mfEvening').textContent=windows[1]?formatWindow(windows[1].t):'—';
+    const maxRain=Math.max(...rain,0),maxWind=Math.max(...wind,0),maxWave=Math.max(...waves,0);
+    document.getElementById('mfRainRisk').textContent=maxRain<30?'Low':maxRain<60?'Moderate':'High';document.getElementById('mfWindSafety').textContent=maxWind<15?'Good':maxWind<25?'Caution':'Risky';document.getElementById('mfSea').textContent=maxWave<.8?'Calm':maxWave<1.5?'Moderate':'Rough';document.getElementById('mfMethod').textContent=maxWave<.8&&maxWind<15?'Kelong / shore / light offshore':maxWave<1.5?'Shore / estuary / protected water':'Pond / freshwater / sheltered area';
+    document.getElementById('mainHourlyStrip').innerHTML=times.slice(0,12).map((t,i)=>`<div class="hourChip"><b>${new Date(t).toLocaleTimeString([],{hour:'numeric'})}</b><div style="font-size:18px;margin:4px 0">${Math.round(temp[i]||0)}°</div><div class="small muted">🌧 ${Math.round(rain[i]||0)}%</div><div class="small muted">💨 ${Math.round(wind[i]||0)}</div><div class="small green">⭐ ${(scores[i]||0).toFixed(1)}</div></div>`).join('');
+    makeMainLineChart('mainTempChart',labels,temp,'°C',true);makeMainBarChart('mainRainChart',labels,rain,'%');makeMainLineChart('mainWindChart',labels,wind,'km/h',false);makeMainLineChart('mainWaveChart',labels,waves,'m',true);makeMainLineChart('mainScoreChart',labels,scores,'Score',true);
+    document.getElementById('mainForecastStatus').textContent='Live forecast updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  }catch(e){document.getElementById('mainForecastStatus').textContent='Live forecast unavailable. Check internet connection.';}
+}
+
+
+const demoProfiles={
+  amirul:{
+    name:'Amirul Angler',
+    location:'Penang, Malaysia',
+    level:'Level 18 • Pro Angler',
+    catches:'428',
+    followers:'2.1K',
+    trips:'17',
+    rating:'⭐ 4.9',
+    avatar:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+    about:'Experienced in kelong, bottom fishing and estuary casting. Frequently organises weekend trips around Penang and Perak.',
+    badges:[
+      ['🏕️','Kelong Expert','10 completed kelong trips'],
+      ['🐟','Siakap Hunter','20+ verified siakap catches'],
+      ['🛡️','Trusted Organiser','High trip attendance rating'],
+      ['💬','Helpful Angler','25 useful community replies']
+    ]
+  },
+  hafiz:{
+    name:'Hafiz Angler',
+    location:'Johor, Malaysia',
+    level:'Level 15 • Specialist',
+    catches:'286',
+    followers:'1.4K',
+    trips:'11',
+    rating:'⭐ 4.8',
+    avatar:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+    about:'Focuses on soft-plastic casting, estuary fishing and light offshore trips around Johor.',
+    badges:[
+      ['🎣','Casting Specialist','Frequent lure-casting reports'],
+      ['🐠','MJ Hunter','Verified mangrove jack catches'],
+      ['🌊','Offshore Explorer','Multiple offshore trips'],
+      ['🤝','Reliable Member','Strong trip attendance']
+    ]
+  },
+  you:{
+    name:'Your Angler Profile',
+    location:'Malaysia',
+    level:'Level 1 • New Angler',
+    catches:'1',
+    followers:'0',
+    trips:'0',
+    rating:'New',
+    avatar:'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&w=300&q=80',
+    about:'Your profile grows when you share catches, join trips, help the community and unlock achievements.',
+    badges:[
+      ['🎉','First Post','Shared your first catch'],
+      ['🧭','New Explorer','Started your fishing journey']
+    ]
+  }
+};
+
+let activePopupProfile='amirul';
+
+function openUserProfile(id){
+  const p=demoProfiles[id];
+  if(!p) return;
+  activePopupProfile=id;
+  document.getElementById('popupProfileAvatar').src=p.avatar;
+  document.getElementById('popupProfileName').textContent=p.name;
+  document.getElementById('popupProfileLocation').textContent=p.location;
+  document.getElementById('popupProfileLevel').textContent=p.level;
+  document.getElementById('popupProfileCatches').textContent=p.catches;
+  document.getElementById('popupProfileFollowers').textContent=p.followers;
+  document.getElementById('popupProfileTrips').textContent=p.trips;
+  document.getElementById('popupProfileAbout').textContent=p.about;
+  document.getElementById('popupProfileRating').textContent=p.rating;
+  document.getElementById('popupProfileBadges').innerHTML=p.badges.map(b=>`
+    <div class="profilePopupBadge">
+      <div style="font-size:26px">${b[0]}</div>
+      <div><b>${b[1]}</b><div class="small muted">${b[2]}</div></div>
+    </div>`).join('');
+  openModal('profilePopupModal');
+}
+
+function followPopupUser(){
+  const name=demoProfiles[activePopupProfile]?.name||'Angler';
+  toast('Following '+name);
+}
+
+function invitePopupUser(){
+  const name=demoProfiles[activePopupProfile]?.name||'Angler';
+  closeModal('profilePopupModal');
+  openWhatsApp(name+' fishing invitation');
+}
+
+function addPost(){
+  const post={title:document.getElementById('postTitle').value||'New catch',species:document.getElementById('species').value||'Fish',weight:document.getElementById('postWeight').value||'',technique:document.getElementById('postTechnique').value||'',story:document.getElementById('story').value||'Shared from AnglerMY.',privacy:document.getElementById('postPrivacy').value||'Approximate area only',image:selectedPostPhotoData,time:'Just now'};
+  renderPostCard(post,true);saveDemoPost(post);closeModal('postModal');showPage('home');toast('Catch published');
+  ['species','postWeight','postTechnique','story'].forEach(id=>document.getElementById(id).value='');document.getElementById('postTitle').value='My latest catch!';document.getElementById('postPhoto').value='';document.getElementById('postPhotoPreview').src='';document.getElementById('postPhotoPreview').classList.remove('show');selectedPostPhotoData='';
+}
+function addTrip(){
+  const name=document.getElementById('tripName').value||'Fishing Trip';
+  const date=document.getElementById('tripDate').value||'Date to confirm';
+  const loc=document.getElementById('tripLoc').value||'Malaysia';
+  const price=document.getElementById('tripPrice').value||'0';
+  const seats=document.getElementById('tripSeats').value||'4';
+  const html=`<div class="card tripCard"><img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=85"><div class="pad"><h3>${name}</h3><div class="muted">📍 ${loc}</div><div class="tripMeta"><div>📅 ${date}</div><div>💰 RM${price}/person</div><div>👥 ${seats} seats available</div><div>🆕 New listing</div></div><button class="btn" onclick="openWhatsApp('${name.replaceAll("'","")}')">Request to Join</button></div></div>`;
+  document.getElementById('tripGrid').insertAdjacentHTML('afterbegin',html);
+  closeModal('tripModal');showPage('trips');toast('Trip published');
+}
+
+
+const liveSpots = [
+  {id:'penang', name:'Penang / Batu Maung', lat:5.283, lon:100.285, species:['Siakap','Jenahak','Kerapu'], type:'Kelong • Shore • Estuary', catches:42},
+  {id:'perak', name:'Pangkor / Lumut', lat:4.211, lon:100.573, species:['Jenahak','Talang','Siakap'], type:'Island • Estuary • Offshore', catches:31},
+  {id:'temenggor', name:'Tasik Temenggor', lat:5.545, lon:101.345, species:['Toman','Sebarau','Baung'], type:'Freshwater • Lake', catches:27},
+  {id:'selangor', name:'Kuala Selangor', lat:3.337, lon:101.249, species:['Siakap','Kerapu','Haruan'], type:'Estuary • Pond • Coast', catches:38},
+  {id:'johor', name:'Desaru / Johor', lat:1.563, lon:104.247, species:['Jenahak','Kerapu','Tenggiri'], type:'Offshore • Jetty • Island', catches:35},
+  {id:'sabah', name:'Kota Kinabalu', lat:5.980, lon:116.073, species:['Kerapu','Tenggiri','GT'], type:'Reef • Offshore • Island', catches:44},
+  {id:'sarawak', name:'Kuching Coast', lat:1.624, lon:110.345, species:['Kerapu','Jenahak','Siakap'], type:'River • Estuary • Coast', catches:29}
+];
+let selectedLiveSpot = liveSpots[0];
+
+function initLiveMap(){
+  if(liveMap || typeof L==='undefined') return;
+  liveMap = L.map('liveMap',{zoomControl:true}).setView([4.2,109.4],6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:18,
+    attribution:'&copy; OpenStreetMap contributors'
+  }).addTo(liveMap);
+
+  liveSpots.forEach(s=>{
+    const marker=L.circleMarker([s.lat,s.lon],{
+      radius:Math.min(16,8+s.catches/8),
+      color:'#dffff0',weight:2,fillColor:'#28c76f',fillOpacity:.9
+    }).addTo(liveMap);
+    marker.bindPopup(`<b>${s.name}</b><br>${s.species.join(' • ')}<br>${s.catches} demo catches<br><button onclick="loadLiveSpot('${s.id}')">View live forecast</button>`);
+    marker.on('click',()=>loadLiveSpot(s.id));
+    liveMarkers.push({marker,spot:s});
+  });
+  setTimeout(()=>liveMap.invalidateSize(),300);
+}
+
+async function fetchJSON(url){
+  const r=await fetch(url);
+  if(!r.ok) throw new Error('API request failed');
+  return await r.json();
+}
+
+async function loadLiveSpot(id){
+  const s=liveSpots.find(x=>x.id===id);
+  if(!s) return;
+  selectedLiveSpot=s;
+  document.getElementById('spotName').textContent=s.name;
+  document.getElementById('spotType').textContent=s.type;
+  document.getElementById('spotSpecies').innerHTML=s.species.map(x=>`<span class="tag">${x}</span>`).join('');
+  document.getElementById('liveUpdated').textContent='Loading live weather and marine forecast...';
+  document.getElementById('mapStatus').textContent='Updating '+s.name;
+  liveMap.setView([s.lat,s.lon],9);
+
+  try{
+    const weatherUrl=`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,precipitation_probability,wind_speed_10m&forecast_days=2&timezone=Asia%2FKuala_Lumpur`;
+    const marineUrl=`https://marine-api.open-meteo.com/v1/marine?latitude=${s.lat}&longitude=${s.lon}&current=wave_height,wave_direction,wave_period&hourly=wave_height,wave_period&forecast_days=2&timezone=Asia%2FKuala_Lumpur`;
+    const [w,m]=await Promise.all([
+      fetchJSON(weatherUrl),
+      fetchJSON(marineUrl).catch(()=>null)
+    ]);
+
+    const c=w.current||{};
+    const mc=(m&&m.current)||{};
+    document.getElementById('spotWeather').textContent=`${Math.round(c.temperature_2m ?? 0)}°C • Rain ${c.precipitation ?? 0} mm`;
+    document.getElementById('spotWind').textContent=`${Math.round(c.wind_speed_10m ?? 0)} km/h`;
+    document.getElementById('spotTide').textContent=mc.wave_height!=null?`Wave ${Number(mc.wave_height).toFixed(1)} m`:'Marine data limited';
+    const score=calculateFishingScore(c,mc);
+    document.getElementById('spotScore').textContent=score.toFixed(1)+'/10';
+    document.getElementById('spotBest').textContent=findBestWindow(w);
+    document.getElementById('spotNote').textContent=`Humidity ${Math.round(c.relative_humidity_2m ?? 0)}%. Wave period ${mc.wave_period ?? '—'} s. Community catches shown: ${s.catches}.`;
+    document.getElementById('liveUpdated').textContent='Live conditions updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('mapStatus').textContent='Live data loaded';
+  }catch(err){
+    document.getElementById('liveUpdated').textContent='Could not reach live forecast API. Check internet connection.';
+    document.getElementById('mapStatus').textContent='Offline';
+  }
+}
+
+function calculateFishingScore(c,mc){
+  let score=8.5;
+  const wind=Number(c.wind_speed_10m||0);
+  const rain=Number(c.precipitation||0);
+  const wave=Number(mc.wave_height||0);
+  if(wind>20) score-=1.5; else if(wind>14) score-=.6;
+  if(rain>2) score-=1.2; else if(rain>.5) score-=.4;
+  if(wave>1.5) score-=1.5; else if(wave>1) score-=.6;
+  return Math.max(2,Math.min(9.5,score));
+}
+
+function findBestWindow(w){
+  const h=w.hourly||{};
+  if(!h.time||!h.time.length) return 'Early morning';
+  let bestIndex=0,best=999;
+  for(let i=0;i<Math.min(24,h.time.length);i++){
+    const rain=Number((h.precipitation_probability||[])[i]||0);
+    const wind=Number((h.wind_speed_10m||[])[i]||0);
+    const hour=new Date(h.time[i]).getHours();
+    const daylightPenalty=(hour>=10&&hour<=15)?10:0;
+    const value=rain+wind*2+daylightPenalty;
+    if(value<best){best=value;bestIndex=i;}
+  }
+  const start=new Date(h.time[bestIndex]);
+  const end=new Date(start.getTime()+3*3600000);
+  const fmt=d=>d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  return `${fmt(start)}–${fmt(end)}`;
+}
+
+function refreshSelectedForecast(){
+  loadLiveSpot(selectedLiveSpot.id);
+}
+
+function locateUser(){
+  if(!navigator.geolocation){
+    toast('Location is not supported');
+    return;
+  }
+  document.getElementById('mapStatus').textContent='Finding your location...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude,lon=pos.coords.longitude;
+    L.circleMarker([lat,lon],{radius:9,color:'#fff',weight:2,fillColor:'#2389ff',fillOpacity:1})
+      .addTo(liveMap).bindPopup('Your current location').openPopup();
+    liveMap.setView([lat,lon],10);
+    document.getElementById('mapStatus').textContent='Your location found';
+    toast('Current location shown');
+  },()=>{
+    document.getElementById('mapStatus').textContent='Location permission denied';
+    toast('Please allow location permission');
+  },{enableHighAccuracy:true,timeout:10000});
+}
+
+const originalShowPage = showPage;
+showPage = function(id){
+  originalShowPage(id);
+  if(id==='map'){
+    setTimeout(()=>{
+      initLiveMap();
+      liveMap.invalidateSize();
+      if(!document.getElementById('liveUpdated').dataset.loaded){
+        document.getElementById('liveUpdated').dataset.loaded='1';
+        loadLiveSpot('penang');
+      }
+    },100);
+  }
+};
+
+const spots = {
+  penang:{
+    name:'Penang Fishing Zone',
+    type:'Kelong • Shore • Estuary',
+    species:['Siakap','Jenahak','Kerapu'],
+    score:'8.6/10', weather:'29°C • Partly cloudy', wind:'12 km/h E',
+    tide:'High 8:15 AM', best:'5:30–9:30 AM',
+    note:'Good for kelong and estuary fishing today.',
+    image:'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=85'
+  },
+  perak:{
+    name:'Perak & Pangkor Zone',
+    type:'Island • Estuary • Offshore',
+    species:['Jenahak','Siakap','Talang'],
+    score:'7.4/10', weather:'30°C • Cloudy', wind:'15 km/h SW',
+    tide:'High 9:05 AM', best:'6:00–10:00 AM',
+    note:'Moderate offshore conditions. Estuary fishing is more suitable.',
+    image:'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=900&q=85'
+  },
+  temenggor:{
+    name:'Tasik Temenggor',
+    type:'Freshwater • Lake • Jungle',
+    species:['Toman','Sebarau','Baung'],
+    score:'8.1/10', weather:'27°C • Light cloud', wind:'6 km/h',
+    tide:'No tide', best:'6:30–9:00 AM',
+    note:'Good early-morning conditions for casting and topwater.',
+    image:'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=900&q=85'
+  },
+  selangor:{
+    name:'Selangor Fishing Zone',
+    type:'Estuary • Pond • Coastal',
+    species:['Siakap','Kerapu','Haruan'],
+    score:'7.8/10', weather:'30°C • Partly cloudy', wind:'10 km/h W',
+    tide:'High 7:40 AM', best:'5:45–8:45 AM',
+    note:'Good for estuary siakap and pay-pond fishing.',
+    image:'https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=900&q=85'
+  },
+  johor:{
+    name:'Johor Offshore Zone',
+    type:'Offshore • Jetty • Island',
+    species:['Jenahak','Kerapu','Tenggiri'],
+    score:'7.2/10', weather:'29°C • Humid', wind:'17 km/h SE',
+    tide:'High 10:10 AM', best:'6:00–9:00 AM',
+    note:'Suitable for experienced anglers; check wind before offshore departure.',
+    image:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=85'
+  },
+  sabah:{
+    name:'Sabah Reef & Offshore Zone',
+    type:'Reef • Offshore • Island',
+    species:['Kerapu','Tenggiri','GT'],
+    score:'8.3/10', weather:'28°C • Clear', wind:'11 km/h NE',
+    tide:'High 8:50 AM', best:'5:30–9:45 AM',
+    note:'Good reef and island conditions; suitable for jigging and bottom fishing.',
+    image:'https://images.unsplash.com/photo-1544550285-f813152fb2fd?auto=format&fit=crop&w=900&q=85'
+  },
+  sarawak:{
+    name:'Sarawak River & Coastal Zone',
+    type:'River • Estuary • Coastal',
+    species:['Kerapu','Jenahak','Siakap'],
+    score:'7.6/10', weather:'29°C • Cloudy', wind:'9 km/h',
+    tide:'High 9:20 AM', best:'6:00–9:30 AM',
+    note:'Good estuary window before midday rain risk increases.',
+    image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85'
+  }
+};
+
+function selectSpot(id, el){
+  const s=spots[id];
+  if(!s) return;
+  document.getElementById('spotName').textContent=s.name;
+  document.getElementById('spotType').textContent=s.type;
+  document.getElementById('spotScore').textContent=s.score;
+  document.getElementById('spotWeather').textContent=s.weather;
+  document.getElementById('spotWind').textContent=s.wind;
+  document.getElementById('spotTide').textContent=s.tide;
+  document.getElementById('spotBest').textContent=s.best;
+  document.getElementById('spotNote').textContent=s.note;
+  document.getElementById('spotImage').src=s.image;
+  document.getElementById('spotSpecies').innerHTML=s.species.map(x=>`<span class="tag">${x}</span>`).join('');
+  document.querySelectorAll('.hotspotCard').forEach(x=>x.classList.remove('active'));
+  if(el) el.classList.add('active');
+  toast(s.name+' selected');
+}
+
+function filterSpecies(species, btn){
+  document.querySelectorAll('#map .filters .pill').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.hotspotCard').forEach(card=>{
+    card.style.display=(species==='all'||card.dataset.species.includes(species))?'block':'none';
+  });
+  document.querySelectorAll('.marker').forEach(marker=>{
+    marker.style.opacity=(species==='all'||marker.classList.contains('species-'+species))?'1':'0.18';
+    marker.style.pointerEvents=(species==='all'||marker.classList.contains('species-'+species))?'auto':'none';
+  });
+  toast(species==='all'?'Showing all species':'Showing '+species+' hotspots');
+}
+
+
+const portData = [
+ {id:'batu-maung',name:'Batu Maung Fishing Port',type:'jetty',label:'Jetty • Shore • Estuary',lat:5.2826,lon:100.2865,species:['Siakap','Jenahak','Kerapu'],score:'8.6/10',image:'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1000&q=85',overview:'Popular Penang coastal fishing area suitable for shore fishing, jetty fishing and nearby boat departures.'},
+ {id:'pulau-aman',name:'Pulau Aman Kelong',type:'kelong',label:'Kelong • Bottom Fishing',lat:5.2715,lon:100.3905,species:['Gelama','Jenahak','Kerapu'],score:'8.2/10',image:'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=1000&q=85',overview:'Kelong-oriented fishing location with bottom fishing opportunities and nearby island access.'},
+ {id:'pangkor',name:'Pangkor Fishing Port',type:'offshore',label:'Offshore • Island • Jetty',lat:4.2110,lon:100.5730,species:['Jenahak','Talang','Tenggiri'],score:'7.5/10',image:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1000&q=85',overview:'A gateway for island, offshore and jetty fishing around Pangkor and Lumut.'},
+ {id:'temenggor',name:'Tasik Temenggor',type:'freshwater',label:'Freshwater • Lake',lat:5.5450,lon:101.3450,species:['Toman','Sebarau','Baung'],score:'8.1/10',image:'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1000&q=85',overview:'Large freshwater lake surrounded by jungle, known for casting and freshwater species.'},
+ {id:'kuala-selangor',name:'Kuala Selangor Estuary',type:'jetty',label:'Estuary • Jetty • Shore',lat:3.3370,lon:101.2490,species:['Siakap','Kerapu','Haruan'],score:'7.8/10',image:'https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=1000&q=85',overview:'Estuary fishing zone with access to shore, jetty and nearby pond fishing.'},
+ {id:'desaru',name:'Desaru Offshore Port',type:'offshore',label:'Offshore • Jetty • Island',lat:1.5630,lon:104.2470,species:['Jenahak','Kerapu','Tenggiri'],score:'7.2/10',image:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1000&q=85',overview:'Johor east-coast departure area for offshore and island fishing.'},
+ {id:'kk',name:'Kota Kinabalu Fishing Port',type:'offshore',label:'Reef • Offshore • Island',lat:5.9804,lon:116.0735,species:['Kerapu','Tenggiri','GT'],score:'8.3/10',image:'https://images.unsplash.com/photo-1544550285-f813152fb2fd?auto=format&fit=crop&w=1000&q=85',overview:'Sabah fishing gateway for reef, island and offshore trips.'},
+ {id:'pond-kl',name:'Klang Valley Fishing Pond',type:'pond',label:'Pay Pond • Beginner Friendly',lat:3.0738,lon:101.5183,species:['Siakap','Patin','Rohu'],score:'8.0/10',image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=85',overview:'Example managed fishing pond suitable for beginners and scheduled fishing sessions.'}
+];
+
+let firstMap, firstMarkers=[], selectedPort=null;
+
+function initFirstMap(){
+  if(firstMap || typeof L==='undefined') return;
+  firstMap=L.map('mapFirst',{zoomControl:false}).setView([4.2,109.2],6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:18, attribution:'&copy; OpenStreetMap contributors'
+  }).addTo(firstMap);
+  L.control.zoom({position:'bottomright'}).addTo(firstMap);
+  renderPortMarkers(portData);
+  setTimeout(()=>firstMap.invalidateSize(),250);
+}
+
+function renderPortMarkers(list){
+  firstMarkers.forEach(x=>firstMap.removeLayer(x.marker));
+  firstMarkers=[];
+  list.forEach(p=>{
+    const marker=L.marker([p.lat,p.lon]).addTo(firstMap);
+    marker.bindTooltip(p.name,{direction:'top'});
+    marker.on('click',()=>selectPort(p.id));
+    firstMarkers.push({marker,port:p});
+  });
+}
+
+function selectPort(id){
+  selectedPort=portData.find(x=>x.id===id);
+  if(!selectedPort) return;
+  document.getElementById('selImage').src=selectedPort.image;
+  document.getElementById('selName').textContent=selectedPort.name;
+  document.getElementById('selType').textContent=selectedPort.label;
+  document.getElementById('selMini').textContent=selectedPort.species.join(' • ');
+  document.getElementById('mapSelection').classList.add('show');
+  firstMap.setView([selectedPort.lat,selectedPort.lon],10);
+}
+
+function closeSelection(){
+  document.getElementById('mapSelection').classList.remove('show');
+}
+
+function filterPorts(type,btn){
+  document.querySelectorAll('.portFilters button').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  const list=type==='all'?portData:portData.filter(x=>x.type===type);
+  renderPortMarkers(list);
+  toast(type==='all'?'Showing all fishing ports':'Filtered: '+type);
+}
+
+function searchPorts(q){
+  q=(q||'').toLowerCase().trim();
+  const list=!q?portData:portData.filter(x=>
+    x.name.toLowerCase().includes(q)||
+    x.label.toLowerCase().includes(q)||
+    x.species.join(' ').toLowerCase().includes(q)
+  );
+  renderPortMarkers(list);
+}
+
+function locateOnFirstMap(){
+  if(!navigator.geolocation){toast('Location not supported');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const ll=[pos.coords.latitude,pos.coords.longitude];
+    L.circleMarker(ll,{radius:9,color:'#fff',weight:2,fillColor:'#2389ff',fillOpacity:1}).addTo(firstMap).bindPopup('Your location').openPopup();
+    firstMap.setView(ll,11);
+  },()=>toast('Please allow location permission'));
+}
+
+function openLocationDetail(tab){
+  if(!selectedPort) return;
+  document.getElementById('detailTitle').textContent=selectedPort.name;
+  document.getElementById('detailSubtitle').textContent=selectedPort.label;
+  document.getElementById('detailHero').src=selectedPort.image;
+  document.getElementById('detailOverviewText').textContent=selectedPort.overview;
+  document.getElementById('detailTags').innerHTML=selectedPort.species.map(s=>`<span class="tag">${s}</span>`).join('');
+  document.getElementById('dScore').textContent=selectedPort.score;
+  document.getElementById('speciesList').innerHTML=selectedPort.species.map((s,i)=>`<div class="card achCard"><div class="icon">${['🐟','🎣','🌊'][i%3]}</div><b>${s}</b><div class="small muted">Commonly reported here</div></div>`).join('');
+  document.getElementById('detailGallery').innerHTML=[1,2,3,4,5,6].map((n,i)=>`<img src="${selectedPort.image}&sig=${i}">`).join('');
+  showPage('locationdetail');
+  showDetailTab(tab||'overview',document.querySelector(`[data-detailtab="${tab||'overview'}"]`));
+  loadDetailForecast(selectedPort);
+}
+
+function showDetailTab(tab,btn){
+  document.querySelectorAll('.detailPane').forEach(x=>x.style.display='none');
+  document.getElementById('detail-'+tab).style.display='block';
+  document.querySelectorAll('[data-detailtab]').forEach(x=>x.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+
+
+const forecastCharts={};
+
+function destroyForecastCharts(){
+  Object.values(forecastCharts).forEach(c=>{try{c.destroy()}catch(e){}});
+  Object.keys(forecastCharts).forEach(k=>delete forecastCharts[k]);
+}
+
+function chartBaseOptions(yTitle){
+  return {
+    responsive:true,
+    maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{backgroundColor:'#071417',titleColor:'#fff',bodyColor:'#d9efef',borderColor:'#1f3a40',borderWidth:1}
+    },
+    scales:{
+      x:{ticks:{color:'#9fb2b5',maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
+      y:{ticks:{color:'#9fb2b5'},grid:{color:'rgba(255,255,255,.06)'},title:{display:true,text:yTitle,color:'#9fb2b5'}}
+    }
+  };
+}
+
+function makeLineChart(id,labels,data,yTitle,fill=false){
+  const ctx=document.getElementById(id);
+  if(!ctx||typeof Chart==='undefined') return;
+  forecastCharts[id]=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{
+      data,
+      tension:.35,
+      fill,
+      borderWidth:3,
+      pointRadius:2,
+      pointHoverRadius:5
+    }]},
+    options:chartBaseOptions(yTitle)
+  });
+}
+
+function makeBarChart(id,labels,data,yTitle){
+  const ctx=document.getElementById(id);
+  if(!ctx||typeof Chart==='undefined') return;
+  forecastCharts[id]=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{data,borderRadius:6}]},
+    options:chartBaseOptions(yTitle)
+  });
+}
+
+function buildHourlyStrip(times,temp,rain,wind,score){
+  const el=document.getElementById('hourlyStrip');
+  if(!el) return;
+  el.innerHTML=times.slice(0,12).map((t,i)=>{
+    const dt=new Date(t);
+    return `<div class="hourChip">
+      <b>${dt.toLocaleTimeString([],{hour:'numeric'})}</b>
+      <div style="font-size:18px;margin:4px 0">${Math.round(temp[i]||0)}°</div>
+      <div class="small muted">🌧 ${Math.round(rain[i]||0)}%</div>
+      <div class="small muted">💨 ${Math.round(wind[i]||0)}</div>
+      <div class="small green">⭐ ${(score[i]||0).toFixed(1)}</div>
+    </div>`;
+  }).join('');
+}
+
+function hourlyFishingScore(rain,wind,wave,hour){
+  let s=9;
+  s-=Math.min(2.5,(rain||0)/35);
+  s-=Math.max(0,((wind||0)-8)/10);
+  s-=Math.max(0,((wave||0)-0.5)*1.2);
+  if(hour>=10&&hour<=15) s-=0.6;
+  if(hour>=5&&hour<=9) s+=0.4;
+  if(hour>=17&&hour<=19) s+=0.3;
+  return Math.max(2,Math.min(9.8,s));
+}
+
+function bestWindows(times,scores){
+  const ranked=times.map((t,i)=>({i,t,s:scores[i]})).sort((a,b)=>b.s-a.s);
+  const chosen=[];
+  for(const r of ranked){
+    const h=new Date(r.t).getHours();
+    if(chosen.every(c=>Math.abs(c.h-h)>=4)){
+      chosen.push({h,t:r.t,s:r.s});
+      if(chosen.length===2) break;
+    }
+  }
+  return chosen.sort((a,b)=>new Date(a.t)-new Date(b.t));
+}
+
+function formatWindow(t){
+  const start=new Date(t), end=new Date(start.getTime()+3*3600000);
+  const fmt=d=>d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  return `${fmt(start)}–${fmt(end)}`;
+}
+
+async function loadDetailForecast(p){
+  document.getElementById('detailForecastStatus').textContent='Loading live weather and marine forecast...';
+  destroyForecastCharts();
+
+  try{
+    const weatherUrl=`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m&hourly=temperature_2m,precipitation_probability,wind_speed_10m,relative_humidity_2m&forecast_days=3&timezone=Asia%2FKuala_Lumpur`;
+    const marineUrl=`https://marine-api.open-meteo.com/v1/marine?latitude=${p.lat}&longitude=${p.lon}&current=wave_height,wave_period&hourly=wave_height,wave_period&forecast_days=3&timezone=Asia%2FKuala_Lumpur`;
+
+    const [w,m]=await Promise.all([
+      fetchJSON(weatherUrl),
+      fetchJSON(marineUrl).catch(()=>null)
+    ]);
+
+    const c=w.current||{}, mc=(m&&m.current)||{};
+    const times=(w.hourly&&w.hourly.time||[]).slice(0,24);
+    const temp=(w.hourly&&w.hourly.temperature_2m||[]).slice(0,24);
+    const rain=(w.hourly&&w.hourly.precipitation_probability||[]).slice(0,24);
+    const wind=(w.hourly&&w.hourly.wind_speed_10m||[]).slice(0,24);
+    let waves=(m&&m.hourly&&m.hourly.wave_height||[]).slice(0,24);
+
+    if(!waves.length) waves=times.map(()=>Number(mc.wave_height||0));
+
+    const labels=times.map(t=>new Date(t).toLocaleTimeString([],{hour:'numeric'}));
+    const scores=times.map((t,i)=>hourlyFishingScore(
+      Number(rain[i]||0),
+      Number(wind[i]||0),
+      Number(waves[i]||0),
+      new Date(t).getHours()
+    ));
+
+    const windows=bestWindows(times,scores);
+    const currentScore=calculateFishingScore(c,mc);
+    const best=windows[0]?formatWindow(windows[0].t):'Early morning';
+
+    document.getElementById('dWeather').textContent=Math.round(c.temperature_2m||0)+'°C';
+    document.getElementById('dWind').textContent=Math.round(c.wind_speed_10m||0)+' km/h';
+    document.getElementById('dMarine').textContent=mc.wave_height!=null?Number(mc.wave_height).toFixed(1)+' m wave':'Limited';
+
+    document.getElementById('fTemp').textContent=Math.round(c.temperature_2m||0)+'°C';
+    document.getElementById('fRain').textContent=(c.precipitation||0)+' mm';
+    document.getElementById('fWind').textContent=Math.round(c.wind_speed_10m||0)+' km/h';
+    document.getElementById('fWave').textContent=mc.wave_height!=null?Number(mc.wave_height).toFixed(1)+' m':'—';
+    document.getElementById('fBest').textContent=best;
+    document.getElementById('fScore').textContent=currentScore.toFixed(1)+'/10';
+
+    document.getElementById('morningWindow').textContent=windows[0]?formatWindow(windows[0].t):'—';
+    document.getElementById('eveningWindow').textContent=windows[1]?formatWindow(windows[1].t):'—';
+
+    const maxRain=Math.max(...rain.map(Number),0);
+    const maxWind=Math.max(...wind.map(Number),0);
+    const maxWave=Math.max(...waves.map(Number),0);
+
+    document.getElementById('rainRisk').textContent=maxRain<30?'Low':maxRain<60?'Moderate':'High';
+    document.getElementById('windSafety').textContent=maxWind<15?'Good':maxWind<25?'Caution':'Risky';
+    document.getElementById('seaCondition').textContent=maxWave<0.8?'Calm':maxWave<1.5?'Moderate':'Rough';
+    document.getElementById('recommendedMethod').textContent=
+      maxWave<0.8&&maxWind<15?'Kelong / shore / light offshore':
+      maxWave<1.5?'Shore / estuary / protected water':'Pond / freshwater / sheltered area';
+
+    document.getElementById('detailForecastStatus').textContent='Live forecast updated';
+    document.getElementById('forecastUpdated').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+    buildHourlyStrip(times,temp,rain,wind,scores);
+    makeLineChart('tempChart',labels,temp,'°C',true);
+    makeBarChart('rainChart',labels,rain,'%');
+    makeLineChart('windChart',labels,wind,'km/h',false);
+    makeLineChart('waveChart',labels,waves,'m',true);
+    makeLineChart('scoreChart',labels,scores,'Score',true);
+
+  }catch(e){
+    document.getElementById('detailForecastStatus').textContent='Live forecast unavailable. Check internet connection.';
+  }
+}
+
+const oldShowPage2 = showPage;
+showPage = function(id){
+  oldShowPage2(id);
+  if(id==='mapfirst'){setTimeout(()=>{initFirstMap();firstMap.invalidateSize();},100);}
+  if(id==='forecast'){setTimeout(()=>loadMainForecast(),100);}
+};
+window.addEventListener('load',()=>{renderSavedPosts();window.scrollTo(0,0);});
+
+</script>
+</body>
+</html>

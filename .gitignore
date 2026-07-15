@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Local and secret environment files
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+
+# Deployment provider local state
+.vercel/
+
+# Test and coverage output
+test-results/
+playwright-report/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript and tooling caches
+*.tsbuildinfo
+.eslintcache
+
+# Operating system and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Private keys, certificates, and signing files
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+*.cer
+*.crt
+
+# Supabase CLI local state
+supabase/.temp/
+
+# Local GitHub / CLI credentials
+.github-token
+gh-token*
