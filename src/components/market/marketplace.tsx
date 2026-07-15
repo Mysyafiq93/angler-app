@@ -1,44 +1,177 @@
 "use client";
 
 import Image from "next/image";
-import { MapPin, MessageCircle, Plus, Search, X } from "lucide-react";
+import { Camera, MapPin, MessageCircle, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
-interface Product { id?: string; name: string; price: number; place: string; category: string; image: string; }
+type GearCondition = "Used" | "New";
+
+interface Product {
+  id?: string;
+  name: string;
+  price: number;
+  place: string;
+  category: string;
+  condition: GearCondition;
+  image: string;
+  images: string[];
+}
+
+interface MarketplaceRow {
+  id: string;
+  title: string;
+  price_myr: number;
+  location: string;
+  image_path: string | null;
+  description: string;
+  condition: "used" | "new" | null;
+  marketplace_listing_images?: { storage_path: string }[];
+}
+
 const initialProducts: Product[] = [
-  { name: "Daiwa BG 4000 reel", price: 480, place: "Penang", category: "Reels", image: "https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=700&q=80" },
-  { name: "Saltwater lure set", price: 75, place: "Kedah", category: "Lures", image: "https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=700&q=80" },
-  { name: "Offshore jigging rod", price: 320, place: "Johor", category: "Rods", image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=700&q=80" },
-  { name: "Portable tackle box", price: 95, place: "Perak", category: "Accessories", image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=700&q=80" },
+  {
+    name: "Daiwa BG 4000 reel",
+    price: 480,
+    place: "Penang",
+    category: "Reels",
+    condition: "Used",
+    image: "https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=700&q=80",
+    images: ["https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=700&q=80"],
+  },
+  {
+    name: "Saltwater lure set",
+    price: 75,
+    place: "Kedah",
+    category: "Lures",
+    condition: "New",
+    image: "https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=700&q=80",
+    images: ["https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=700&q=80"],
+  },
+  {
+    name: "Offshore jigging rod",
+    price: 320,
+    place: "Johor",
+    category: "Rods",
+    condition: "Used",
+    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=700&q=80",
+    images: ["https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=700&q=80"],
+  },
+  {
+    name: "Portable tackle box",
+    price: 95,
+    place: "Perak",
+    category: "Accessories",
+    condition: "New",
+    image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=700&q=80",
+    images: ["https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=700&q=80"],
+  },
 ];
+
+function productImageKey(image: string) {
+  return image.startsWith("data:") ? image.slice(0, 48) : image;
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export function Marketplace() {
   const [products, setProducts] = useState(initialProducts);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const visible = useMemo(() => products.filter((item) => `${item.name} ${item.place} ${item.category}`.toLowerCase().includes(query.toLowerCase())), [products, query]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const visible = useMemo(
+    () => products.filter((item) => `${item.name} ${item.place} ${item.category} ${item.condition}`.toLowerCase().includes(query.toLowerCase())),
+    [products, query],
+  );
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     const supabase = createClient();
-    supabase.from("marketplace_listings").select("id,title,price_myr,location,image_path,description").eq("status", "active").order("created_at", { ascending: false }).then(({ data }) => {
-      if (!data?.length) return;
-      setProducts([...data.map((row) => ({ id: row.id, name: row.title, price: Number(row.price_myr), place: row.location, category: row.description || "Fishing gear", image: row.image_path ? supabase.storage.from("marketplace-images").getPublicUrl(row.image_path).data.publicUrl : initialProducts[0].image })), ...initialProducts]);
-    });
+    supabase
+      .from("marketplace_listings")
+      .select("id,title,price_myr,location,image_path,description,condition,marketplace_listing_images(storage_path)")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (!data?.length) return;
+        setProducts([
+          ...(data as MarketplaceRow[]).map((row): Product => {
+            const extraImages = row.marketplace_listing_images?.map((image) => supabase.storage.from("marketplace-images").getPublicUrl(image.storage_path).data.publicUrl) ?? [];
+            const image = row.image_path ? supabase.storage.from("marketplace-images").getPublicUrl(row.image_path).data.publicUrl : extraImages[0] ?? initialProducts[0].image;
+            const images = [...new Set([image, ...extraImages])];
+            return {
+              id: row.id,
+              name: row.title,
+              price: Number(row.price_myr),
+              place: row.location,
+              category: row.description || "Fishing gear",
+              condition: row.condition === "new" ? "New" : "Used",
+              image,
+              images,
+            };
+          }),
+          ...initialProducts,
+        ]);
+      });
   }, []);
 
   async function add(formData: FormData) {
-    const product: Product = { name: String(formData.get("name")), price: Number(formData.get("price")), place: String(formData.get("place")), category: String(formData.get("category")), image: initialProducts[0].image };
+    const files = formData.getAll("images").filter((file): file is File => file instanceof File && file.size > 0).slice(0, 5);
+    const condition = String(formData.get("condition")) === "New" ? "New" : "Used";
+    const localImages = files.length ? await Promise.all(files.map(readFileAsDataUrl)) : [];
+    const product: Product = {
+      name: String(formData.get("name")),
+      price: Number(formData.get("price")),
+      place: String(formData.get("place")),
+      category: String(formData.get("category")),
+      condition,
+      image: localImages[0] ?? initialProducts[0].image,
+      images: localImages.length ? localImages : [initialProducts[0].image],
+    };
+
     if (isSupabaseConfigured()) {
-      const supabase = createClient(); const { data } = await supabase.auth.getUser();
-      if (!data.user) { window.location.href = "/auth"; return; }
-      const result = await supabase.from("marketplace_listings").insert({ seller_id: data.user.id, title: product.name, price_myr: product.price, location: product.place, description: product.category }).select("id").single();
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        window.location.href = "/auth";
+        return;
+      }
+      const result = await supabase
+        .from("marketplace_listings")
+        .insert({ seller_id: data.user.id, title: product.name, price_myr: product.price, location: product.place, description: product.category, condition: condition.toLowerCase() })
+        .select("id")
+        .single();
       if (result.error) throw result.error;
       product.id = result.data.id;
+
+      const uploadedImages: string[] = [];
+      for (const [index, file] of files.entries()) {
+        if (!file.type.match(/^image\/(jpeg|png|webp)$/) || file.size > 10 * 1024 * 1024) continue;
+        const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+        const path = `${data.user.id}/${result.data.id}/${crypto.randomUUID()}.${extension}`;
+        const upload = await supabase.storage.from("marketplace-images").upload(path, file, { contentType: file.type, upsert: false });
+        if (upload.error) throw upload.error;
+        uploadedImages.push(supabase.storage.from("marketplace-images").getPublicUrl(path).data.publicUrl);
+        const imageRow = await supabase.from("marketplace_listing_images").insert({ listing_id: result.data.id, owner_id: data.user.id, storage_path: path, position: index });
+        if (imageRow.error) throw imageRow.error;
+        if (index === 0) await supabase.from("marketplace_listings").update({ image_path: path }).eq("id", result.data.id);
+      }
+      if (uploadedImages.length) {
+        product.image = uploadedImages[0];
+        product.images = uploadedImages;
+      }
     }
+
     setProducts((current) => [product, ...current]);
+    setPreviews([]);
     setOpen(false);
   }
 
@@ -47,9 +180,67 @@ export function Marketplace() {
     window.open(`https://wa.me/?text=${message}`, "_blank", "noopener,noreferrer");
   }
 
-  return <div className="page-container standard-page"><PageHeader eyebrow="Community listings" title="Fishing marketplace" description="Discover equipment listed by anglers near you." action={<button className="primary-button" onClick={() => setOpen(true)}><Plus />Sell item</button>} />
-    <label className="market-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search rods, reels, lures, or location" /></label>
-    <div className="product-grid">{visible.map((product) => <article className="product-card surface" key={`${product.name}-${product.place}`}><div><Image src={product.image} fill sizes="(max-width: 600px) 50vw, 280px" alt={product.name} /></div><p className="eyebrow"><MapPin />{product.place} · {product.category}</p><h2>{product.name}</h2><strong>RM{product.price}</strong><button className="secondary-button" onClick={() => contact(product)}><MessageCircle />Contact seller</button></article>)}</div>
-    {open && <div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="sell-title"><form action={add}><div className="modal-head"><div><p className="eyebrow">Marketplace</p><h2 id="sell-title">List fishing gear</h2></div><button className="icon-button" type="button" onClick={() => setOpen(false)} aria-label="Close"><X /></button></div><div className="form-grid"><label className="wide">Item name<input required name="name" placeholder="Travel spinning rod" /></label><label>Price (RM)<input required name="price" type="number" min="0" /></label><label>Category<select name="category"><option>Rods</option><option>Reels</option><option>Lures</option><option>Accessories</option></select></label><label className="wide">Location<input required name="place" placeholder="Penang" /></label></div><button className="primary-button wide-button">Publish listing</button></form></section></div>}
-  </div>;
+  return (
+    <div className="page-container standard-page">
+      <PageHeader
+        eyebrow="Community listings"
+        title="Fishing marketplace"
+        description="Discover equipment listed by anglers near you."
+        action={<button className="primary-button" onClick={() => setOpen(true)}><Plus />Sell item</button>}
+      />
+      <label className="market-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search rods, reels, lures, or location" /></label>
+      <div className="product-grid">
+        {visible.map((product) => (
+          <article className="product-card surface" key={`${product.name}-${product.place}-${product.id ?? product.image}`}>
+            <div>
+              <Image src={product.image} fill sizes="(max-width: 600px) 50vw, 280px" alt={product.name} unoptimized={product.image.startsWith("data:")} />
+              {product.images.length > 1 && <span className="image-count">{product.images.length} photos</span>}
+            </div>
+            <p className="eyebrow"><MapPin />{product.place} · {product.category}</p>
+            <div className="product-thumbs">
+              {product.images.slice(0, 4).map((image) => <span key={productImageKey(image)}><Image src={image} fill sizes="44px" alt="" unoptimized={image.startsWith("data:")} /></span>)}
+            </div>
+            <h2>{product.name}</h2>
+            <span className="condition-pill">{product.condition}</span>
+            <strong>RM{product.price}</strong>
+            <button className="secondary-button" onClick={() => contact(product)}><MessageCircle />Contact seller</button>
+          </article>
+        ))}
+      </div>
+      {open && (
+        <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+          <section className="modal" role="dialog" aria-modal="true" aria-labelledby="sell-title">
+            <form action={add}>
+              <div className="modal-head">
+                <div><p className="eyebrow">Marketplace</p><h2 id="sell-title">List fishing gear</h2></div>
+                <button className="icon-button" type="button" onClick={() => setOpen(false)} aria-label="Close"><X /></button>
+              </div>
+              <label className="photo-picker">
+                <Camera aria-hidden="true" />
+                <strong>Add item photos</strong>
+                <span>Choose up to 5 JPG, PNG, or WebP images</span>
+                <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={async (event) => {
+                  const files = Array.from(event.target.files ?? []).slice(0, 5);
+                  setPreviews(await Promise.all(files.map(readFileAsDataUrl)));
+                }} />
+              </label>
+              {previews.length > 0 && (
+                <div className="market-preview-grid">
+                  {previews.map((image) => <span key={productImageKey(image)}><Image src={image} fill sizes="100px" alt="Listing preview" unoptimized /></span>)}
+                </div>
+              )}
+              <div className="form-grid">
+                <label className="wide">Item name<input required name="name" placeholder="Travel spinning rod" /></label>
+                <label>Price (RM)<input required name="price" type="number" min="0" /></label>
+                <label>Category<select name="category"><option>Rods</option><option>Reels</option><option>Lures</option><option>Accessories</option></select></label>
+                <label>Condition<select name="condition" defaultValue="Used"><option>Used</option><option>New</option></select></label>
+                <label className="wide">Location<input required name="place" placeholder="Penang" /></label>
+              </div>
+              <button className="primary-button wide-button">Publish listing</button>
+            </form>
+          </section>
+        </div>
+      )}
+    </div>
+  );
 }
