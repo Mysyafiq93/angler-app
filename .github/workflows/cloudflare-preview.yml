@@ -21,4 +21,4 @@ jobs:
       - run: npm ci
       - run: npm run cf:build
       - run: npx wrangler whoami
-      - run: npx wrangler deploy --name anglermy-preview --account-id "$CLOUDFLARE_ACCOUNT_ID"
+      - run: npx wrangler deploy --name anglermy-preview
