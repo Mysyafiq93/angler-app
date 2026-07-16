@@ -11,14 +11,14 @@ async function compressCatchImage(file: File) {
   const source = typeof createImageBitmap === "undefined"
     ? await new Promise<HTMLImageElement>((resolve, reject) => { const image = new globalThis.Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = URL.createObjectURL(file); })
     : await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / source.width);
+  const scale = Math.min(1, 1280 / source.width);
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(source.width * scale));
   canvas.height = Math.max(1, Math.round(source.height * scale));
   canvas.getContext("2d")?.drawImage(source, 0, 0, canvas.width, canvas.height);
   if ("close" in source) source.close();
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.82));
-  return blob ? new File([blob], "catch.webp", { type: "image/webp" }) : file;
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.72));
+  return blob ? new File([blob], "catch.jpg", { type: "image/jpeg" }) : file;
 }
 
 export function CreateCatch({ onCreate, angler = currentAngler }: { onCreate: (post: CatchPost) => void | Promise<void>; angler?: typeof currentAngler }) {
