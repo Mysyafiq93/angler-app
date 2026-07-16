@@ -8,9 +8,8 @@ achievement tracking.
 The active application is under `src/`. The original single-file prototype is
 preserved as `index.html` for historical reference.
 
-This repository is intended to be private while the product is being tested.
-Never place production credentials, database passwords, or Supabase service-role
-keys in source control.
+This repository is public for development collaboration. Never place production
+credentials, database passwords, or Supabase service-role keys in source control.
 
 ## Technology
 
@@ -21,7 +20,7 @@ keys in source control.
 - Open-Meteo weather and marine APIs
 - Recharts
 - Playwright
-- Vercel deployment
+- Cloudflare Workers deployment via the OpenNext adapter
 
 ## Requirements
 
@@ -87,13 +86,15 @@ PROJECT_CONTEXT.md       Product background and direction
 
 ## Deployment
 
-The current deployment target is Vercel. Import the GitHub repository into
-Vercel, configure the two public Supabase environment variables, and use the
-default Next.js settings:
+The deployment target is Cloudflare Workers using the OpenNext adapter. In the
+Cloudflare dashboard, connect the GitHub repository through Workers Builds,
+configure the two public Supabase environment variables, and use:
 
-- Build command: `npm run build`
-- Output framework: Next.js
+- Build command: `npm run cf:build`
+- Deploy command: `npm run cf:deploy`
+- Worker entrypoint: `.open-next/worker.js`
 - Production branch: `main`
 
-Supabase secrets, database passwords, local Vercel metadata, and private keys
+For a local preview, run `npm run cf:preview`. Supabase secrets, database
+passwords, local deployment metadata, and private keys
 must remain outside the repository.
