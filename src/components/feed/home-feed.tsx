@@ -20,22 +20,6 @@ export function HomeFeed() {
   const [activeAngler, setActiveAngler] = useState(currentAngler);
   const [loading, setLoading] = useState(isSupabaseConfigured());
   useEffect(() => {
-    let startY = 0;
-    let triggered = false;
-    const onTouchStart = (event: TouchEvent) => {
-      startY = event.touches[0]?.clientY ?? 0;
-      triggered = false;
-    };
-    const onTouchMove = (event: TouchEvent) => {
-      const top = document.scrollingElement?.scrollTop ?? window.scrollY;
-      const distance = (event.touches[0]?.clientY ?? 0) - startY;
-      if (!triggered && top <= 2 && distance > 90) {
-        triggered = true;
-        window.location.reload();
-      }
-    };
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
     if (isSupabaseConfigured()) {
       const supabase = createClient();
       Promise.all([
@@ -60,10 +44,6 @@ export function HomeFeed() {
       const saved = localStorage.getItem("anglermy-demo-posts");
       if (saved) Promise.resolve().then(() => setPosts([...JSON.parse(saved), ...initialPosts]));
     }
-    return () => {
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
-    };
   }, []);
 
   async function create(post: CatchPost) {

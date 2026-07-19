@@ -26,7 +26,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setEmbedded(new URLSearchParams(window.location.search).get("embedded") === "1");
-    if (!isSupabaseConfigured()) return;
+    let startY = 0;
+    let triggered = false;
+    const onTouchStart = (event: TouchEvent) => {
+      startY = event.touches[0]?.clientY ?? 0;
+      triggered = false;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const top = document.scrollingElement?.scrollTop ?? window.scrollY;
+      const distance = (event.touches[0]?.clientY ?? 0) - startY;
+      if (!triggered && top <= 2 && distance > 90) {
+        triggered = true;
+        window.location.reload();
+      }
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    if (!isSupabaseConfigured()) {
+      return () => {
+        window.removeEventListener("touchstart", onTouchStart);
+        window.removeEventListener("touchmove", onTouchMove);
+      };
+    }
     const supabase = createClient();
     const updateAccount = async (userId?: string, email?: string, displayName?: string) => {
       if (!userId) {
@@ -47,7 +68,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
     const refreshProfile = () => supabase.auth.getUser().then(({ data }) => updateAccount(data.user?.id, data.user?.email, data.user?.user_metadata.display_name));
     window.addEventListener("anglermy-profile-updated", refreshProfile);
-    return () => { listener.subscription.unsubscribe(); window.removeEventListener("anglermy-profile-updated", refreshProfile); };
+    return () => {
+      listener.subscription.unsubscribe();
+      window.removeEventListener("anglermy-profile-updated", refreshProfile);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
   }, []);
 
   return (
