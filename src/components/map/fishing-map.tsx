@@ -15,7 +15,10 @@ export default function FishingMap({ spots, selected, liveScores, userLocation, 
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
     mapRef.current = map;
-    map.on("click", () => onMapClick?.());
+    map.on("click", () => {
+      onMapClick?.();
+      window.dispatchEvent(new Event("angler-map-click"));
+    });
     return () => { map.remove(); mapRef.current = null; };
   }, [selected.latitude, selected.longitude]);
   useEffect(() => {

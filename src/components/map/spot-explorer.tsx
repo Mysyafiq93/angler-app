@@ -50,6 +50,12 @@ export function SpotExplorer() {
     return () => { active = false; };
   }, [selected]);
 
+  useEffect(() => {
+    const close = () => setDetailsOpen(false);
+    window.addEventListener("angler-map-click", close);
+    return () => window.removeEventListener("angler-map-click", close);
+  }, []);
+
   function locate() {
     setLocating(true);
     if (!navigator.geolocation) { setLocating(false); return; }
