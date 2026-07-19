@@ -1,27 +1,41 @@
 "use client";
 
-import L from "leaflet";
-import { CircleMarker, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import { useEffect } from "react";
+import "maplibre-gl/dist/maplibre-gl.css";
+import maplibregl from "maplibre-gl";
+import { useEffect, useRef } from "react";
 import type { FishingSpot } from "@/types/domain";
 
-function MapFocus({ selected, userLocation }: { selected: FishingSpot; userLocation: [number, number] | null }) {
-  const map = useMap();
+export default function FishingMap({ spots, selected, liveScores, userLocation, onSelect, onMapClick }: { spots: FishingSpot[]; selected: FishingSpot; liveScores: Record<string, number>; userLocation: [number, number] | null; layer?: string; onSelect: (id: string) => void; onMapClick?: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
   useEffect(() => {
-    map.flyTo(userLocation ?? [selected.latitude, selected.longitude], userLocation ? 12 : 11, { duration: 0.8 });
-  }, [map, selected, userLocation]);
-  return null;
-}
-
-function scoreMarker(score: number, active: boolean) {
-  return L.divIcon({ className: "fishing-map-marker-wrap", html: `<span class="fishing-map-marker${active ? " active" : ""}"><b>${score.toFixed(1)}</b><small>FISH</small></span>`, iconSize: [48, 58], iconAnchor: [24, 56], popupAnchor: [0, -50] });
-}
-
-export default function FishingMap({ spots, selected, liveScores, userLocation, onSelect }: { spots: FishingSpot[]; selected: FishingSpot; liveScores: Record<string, number>; userLocation: [number, number] | null; onSelect: (id: string) => void }) {
-  return <MapContainer className="real-map" center={[selected.latitude, selected.longitude]} zoom={10} zoomControl attributionControl>
-    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-    <MapFocus selected={selected} userLocation={userLocation} />
-    {spots.map((spot) => <Marker key={spot.id} position={[spot.latitude, spot.longitude]} icon={scoreMarker(liveScores[spot.id] ?? spot.score, selected.id === spot.id)} eventHandlers={{ click: () => onSelect(spot.id) }}><Popup><strong>{spot.name}</strong><br />{spot.type} · {spot.state}<br />Fishing score: {(liveScores[spot.id] ?? spot.score).toFixed(1)}/10</Popup></Marker>)}
-    {userLocation && <CircleMarker center={userLocation} radius={9} pathOptions={{ color: "#fff", weight: 3, fillColor: "#177ea8", fillOpacity: 1 }}><Popup>Your current location</Popup></CircleMarker>}
-  </MapContainer>;
+    if (!ref.current || mapRef.current) return;
+    const map = new maplibregl.Map({ container: ref.current, style: "https://tiles.openfreemap.org/styles/liberty", center: [selected.longitude, selected.latitude], zoom: 10.5 });
+    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+    map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+    mapRef.current = map;
+    map.on("click", () => {
+      onMapClick?.();
+      window.dispatchEvent(new Event("angler-map-click"));
+    });
+    return () => { map.remove(); mapRef.current = null; };
+  }, [selected.latitude, selected.longitude]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = spots.map((spot) => {
+      const score = liveScores[spot.id] ?? spot.score;
+      const element = document.createElement("button");
+      element.className = `gl-fishing-marker ${selected.id === spot.id ? "active" : ""}`;
+      element.type = "button";
+      element.innerHTML = `<span>🐟</span>`;
+      element.setAttribute("aria-label", `${spot.name}, fishing score ${score.toFixed(1)}`);
+      element.onclick = () => onSelect(spot.id);
+      return new maplibregl.Marker({ element }).setLngLat([spot.longitude, spot.latitude]).setPopup(new maplibregl.Popup({ offset: 28 }).setHTML(`<strong>${spot.name}</strong><br>${spot.type} · ${spot.state}<br>Fishing score: ${score.toFixed(1)}/10`)).addTo(map);
+    });
+  }, [spots, selected.id, liveScores, onSelect]);
+  useEffect(() => { const map = mapRef.current; if (!map) return; const center = userLocation ?? [selected.longitude, selected.latitude] as [number, number]; map.flyTo({ center, zoom: userLocation ? 12 : 10.5, duration: 700 }); }, [selected, userLocation]);
+  return <div ref={ref} className="real-map" aria-label="Interactive fishing activity map" />;
 }
