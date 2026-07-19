@@ -57,6 +57,7 @@ export function SpotExplorer() {
   }
 
   function selectSpot(id: string) { setForecast(null); setForecastError(""); setUserLocation(null); setSelectedId(id); setDetailsOpen(true); }
+  function closeMapDetails() { setDetailsOpen(false); }
   const score = forecast?.current.score ?? liveScores[selected.id] ?? selected.score;
   const bestWindows = forecast?.hourly.slice().sort((a, b) => b.score - a.score).slice(0, 3).sort((a, b) => a.time.localeCompare(b.time)) ?? [];
   const timelinePoint = forecast?.hourly[hour] ?? forecast?.current;
