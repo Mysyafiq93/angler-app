@@ -16,7 +16,7 @@ interface DatabasePost {
 }
 
 export function HomeFeed() {
-  const [posts, setPosts] = useState<CatchPost[]>(initialPosts);
+  const [posts, setPosts] = useState<CatchPost[]>(isSupabaseConfigured() ? [] : initialPosts);
   const [activeAngler, setActiveAngler] = useState(currentAngler);
   useEffect(() => {
     if (isSupabaseConfigured()) {
@@ -33,7 +33,7 @@ export function HomeFeed() {
           const imagePath = row.post_images?.[0]?.storage_path;
           return { id: row.id, author: { id: profile?.id ?? "angler", name: profile?.display_name ?? "AnglerMY member", handle: `@${profile?.username ?? "angler"}`, location: profile?.location ?? "Malaysia", avatar: profile?.avatar_path || currentAngler.avatar, level: "Community Angler" }, title: row.title, story: row.story, species: row.species, weight: row.weight_kg ? `${row.weight_kg} kg` : "", technique: row.technique ?? "", location: row.location_label ?? "Malaysia", privacy: row.privacy === "state" ? "State only" : row.privacy === "private" ? "Private" : "Approximate area", image: imagePath ? supabase.storage.from("catch-images").getPublicUrl(imagePath).data.publicUrl : initialPosts[0].image, createdAt: new Date(row.created_at).toLocaleDateString("en-MY"), likes: row.likes?.[0]?.count ?? 0, comments: row.comments?.[0]?.count ?? 0 };
         });
-        setPosts([...mapped, ...initialPosts]);
+        setPosts(mapped);
       });
     } else {
       const saved = localStorage.getItem("anglermy-demo-posts");

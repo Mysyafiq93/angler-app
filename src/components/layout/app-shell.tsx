@@ -29,11 +29,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!isSupabaseConfigured()) return;
     const supabase = createClient();
     const updateAccount = async (userId?: string, email?: string, displayName?: string) => {
-      if (!userId) return setAccount({ signedIn: false, initials: "?", avatar: null });
+      if (!userId) {
+        setAccount({ signedIn: false, initials: "?", avatar: null });
+        document.body.dataset.profileAvatar = "";
+        return;
+      }
       const { data } = await supabase.from("profiles").select("display_name,avatar_path").eq("id", userId).single();
       const name: string | undefined = data?.display_name || displayName;
       const initials = (name || email || "A").split(/[\s@]+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
-      setAccount({ signedIn: true, initials, avatar: data?.avatar_path ?? null });
+      const avatar = data?.avatar_path ?? null;
+      setAccount({ signedIn: true, initials, avatar });
+      document.body.dataset.profileAvatar = avatar ?? "";
     };
     supabase.auth.getUser().then(({ data }) => updateAccount(data.user?.id, data.user?.email, data.user?.user_metadata.display_name));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
