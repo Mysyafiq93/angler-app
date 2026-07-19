@@ -20,10 +20,12 @@ const navigation = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [embedded, setEmbedded] = useState(false);
   const [account, setAccount] = useState<{ signedIn: boolean; initials: string; avatar: string | null }>({ signedIn: false, initials: "?", avatar: null });
   const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   useEffect(() => {
+    setEmbedded(new URLSearchParams(window.location.search).get("embedded") === "1");
     if (!isSupabaseConfigured()) return;
     const supabase = createClient();
     const updateAccount = async (userId?: string, email?: string, displayName?: string) => {
@@ -43,20 +45,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
+    <div className={`app-shell ${embedded ? "embedded-shell" : ""}`}>
+      {!embedded && <header className="topbar">
         <Link className="brand" href="/" aria-label="AnglerMY home"><Fish aria-hidden="true" /><span>Angler<b>MY</b></span></Link>
         <nav className="desktop-nav" aria-label="Primary navigation">
           {navigation.map(({ href, label }) => <Link className={isActive(href) ? "active" : ""} href={href} key={href}>{label}</Link>)}
         </nav>
         <Link className={`icon-button profile-button ${account.avatar ? "has-avatar" : ""}`} href={account.signedIn ? "/profile" : "/auth"} title={account.signedIn ? "View profile" : "Create account or log in"} aria-label={account.signedIn ? "View profile" : "Create account or log in"}>{account.avatar ? <Image src={account.avatar} width={40} height={40} alt="Your profile" /> : account.initials}</Link>
-      </header>
+      </header>}
       <main>{children}</main>
-      <nav className="mobile-nav" aria-label="Mobile navigation">
+      {!embedded && <nav className="mobile-nav" aria-label="Mobile navigation">
         {navigation.filter(({ href }) => ["/", "/map", "/forecast", "/trips", "/learn", "/market", "/achievements"].includes(href)).map(({ href, label, icon: Icon }) => (
           <Link className={isActive(href) ? "active" : ""} href={href} key={href}><Icon aria-hidden="true" /><span>{label}</span></Link>
         ))}
-      </nav>
+      </nav>}
     </div>
   );
 }
