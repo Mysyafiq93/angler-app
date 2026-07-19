@@ -18,22 +18,27 @@ interface DatabasePost {
 export function HomeFeed() {
   const [posts, setPosts] = useState<CatchPost[]>(isSupabaseConfigured() ? [] : initialPosts);
   const [activeAngler, setActiveAngler] = useState(currentAngler);
+  const [loading, setLoading] = useState(isSupabaseConfigured());
   useEffect(() => {
     if (isSupabaseConfigured()) {
       const supabase = createClient();
-      supabase.auth.getUser().then(async ({ data }) => {
-        if (!data.user) return;
-        const { data: profile } = await supabase.from("profiles").select("display_name,username,location,avatar_path").eq("id", data.user.id).single();
-        if (profile) setActiveAngler({ id: data.user.id, name: profile.display_name, handle: `@${profile.username}`, location: profile.location ?? "Malaysia", avatar: profile.avatar_path || currentAngler.avatar, level: "Community Angler" });
-      });
-      supabase.from("posts").select("id,title,story,species,weight_kg,technique,location_label,privacy,created_at,profiles!posts_author_id_fkey(id,display_name,username,location,avatar_path),post_images(storage_path),likes(count),comments(count)").order("created_at", { ascending: false }).limit(30).then(({ data }) => {
-        if (!data) return;
+      Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("posts").select("id,title,story,species,weight_kg,technique,location_label,privacy,created_at,profiles!posts_author_id_fkey(id,display_name,username,location,avatar_path),post_images(storage_path),likes(count),comments(count)").order("created_at", { ascending: false }).limit(30),
+      ]).then(async ([userResult, postsResult]) => {
+        if (userResult.data.user) {
+          const { data: profile } = await supabase.from("profiles").select("display_name,username,location,avatar_path").eq("id", userResult.data.user.id).single();
+          if (profile) setActiveAngler({ id: userResult.data.user.id, name: profile.display_name, handle: `@${profile.username}`, location: profile.location ?? "Malaysia", avatar: profile.avatar_path || currentAngler.avatar, level: "Community Angler" });
+        }
+        const data = postsResult.data;
+        if (!data) { setLoading(false); return; }
         const mapped = (data as unknown as DatabasePost[]).map((row): CatchPost => {
           const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
           const imagePath = row.post_images?.[0]?.storage_path;
           return { id: row.id, author: { id: profile?.id ?? "angler", name: profile?.display_name ?? "AnglerMY member", handle: `@${profile?.username ?? "angler"}`, location: profile?.location ?? "Malaysia", avatar: profile?.avatar_path || currentAngler.avatar, level: "Community Angler" }, title: row.title, story: row.story, species: row.species, weight: row.weight_kg ? `${row.weight_kg} kg` : "", technique: row.technique ?? "", location: row.location_label ?? "Malaysia", privacy: row.privacy === "state" ? "State only" : row.privacy === "private" ? "Private" : "Approximate area", image: imagePath ? supabase.storage.from("catch-images").getPublicUrl(imagePath).data.publicUrl : initialPosts[0].image, createdAt: new Date(row.created_at).toLocaleDateString("en-MY"), likes: row.likes?.[0]?.count ?? 0, comments: row.comments?.[0]?.count ?? 0 };
         });
         setPosts(mapped);
+        setLoading(false);
       });
     } else {
       const saved = localStorage.getItem("anglermy-demo-posts");
@@ -74,5 +79,6 @@ export function HomeFeed() {
     }
   }
 
+  if (loading) return <div className="feed" aria-busy="true"><div className="surface feed-loading">Loading your feed...</div></div>;
   return <div className="feed"><CreateCatch onCreate={create} angler={activeAngler} />{posts.map((post) => <CatchCard post={post} onDelete={(id) => setPosts((current) => current.filter((item) => item.id !== id))} key={post.id} />)}</div>;
 }
