@@ -11,7 +11,11 @@ export default function FishingMap({ spots, selected, liveScores, userLocation, 
   const markersRef = useRef<maplibregl.Marker[]>([]);
   useEffect(() => {
     if (!ref.current || mapRef.current) return;
-    const map = new maplibregl.Map({ container: ref.current, style: "https://tiles.openfreemap.org/styles/liberty", center: [selected.longitude, selected.latitude], zoom: 10.5 });
+    const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    const style = mapboxToken
+      ? `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${mapboxToken}`
+      : "https://tiles.openfreemap.org/styles/liberty";
+    const map = new maplibregl.Map({ container: ref.current, style, center: [selected.longitude, selected.latitude], zoom: 10.5 });
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
     mapRef.current = map;
